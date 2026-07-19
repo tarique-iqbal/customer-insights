@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y \
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug
 
-COPY .docker/php/php.ini /usr/local/etc/php/conf.d/
-COPY .docker/php/xdebug.ini /usr/local/etc/php/conf.d/
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/
+COPY docker/php/xdebug.ini /usr/local/etc/php/conf.d/
 
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
