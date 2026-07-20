@@ -18,27 +18,53 @@ Customer Satisfaction Score (CSAT) is a key performance indicator that measures 
 - **Docker** (optional for Containerized development)
 
 ## Project Structure
-```bash
+```
 csat-app/
-│── api-service/               # API Service
+├── api-service/               # API Service
 │   ├── bin/                   # CLI tools or scripts
 │   ├── config/                # App configuration files
 │   ├── migrations/            # Database migration scripts
 │   ├── public/                # Entry point
-│   │   ├── index.php          # Starts HTTP API
+│   │   └── index.php          # Starts HTTP API
 │   ├── src/
 │   │   ├── Application/       # Application logic/use cases
 │   │   ├── Domain/            # Domain models and interfaces
 │   │   ├── Infrastructure/    # Database and external service integrations
-│   │   ├── Interface/         # API controllers
-│
-├── web-user/                  # Frontend UI for users (React)
-│
-│── .gitignore                 # .gitignore file
-│── README.md                  # You are here
+│   │   └── Interface/         # API controllers
+│   └── tests/
+│       ├── Functional/
+│       ├── Infrastructure/
+│       ├── Integration/
+│       └── Unit/
+├── web-user/                  # React + Vite frontend
+│   ├── public/
+│   │   └── assets/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── __tests__/     # API client tests
+│   │   ├── components/
+│   │   │   └── __tests__/     # Component tests
+│   │   ├── layouts/
+│   │   │   └── __tests__/     # Layout tests
+│   │   ├── pages/
+│   │   │   └── __tests__/     # Page tests
+│   │   ├── routes/
+│   │   │   └── __tests__/     # Routing tests
+│   │   ├── utils/
+│   │   │   └── __tests__/     # Utility tests
+│   │   ├── App.tsx
+│   │   └── index.tsx
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+├── docker/                    # Dockerfiles
+├── docker-compose.yml
+├── .gitignore
+└── README.md
 ```
 
 ## Project Status
-> **Note:** This project is **under active development**.  
+> **Note:** This project is **under development**.  
 > Some features may be incomplete or subject to change.  
 > You're welcome to explore or provide feedback!
