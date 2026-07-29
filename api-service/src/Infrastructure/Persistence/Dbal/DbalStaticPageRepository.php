@@ -79,6 +79,9 @@ final readonly class DbalStaticPageRepository implements StaticPageRepositoryInt
         return array_map([$this, 'hydrate'], $rows);
     }
 
+    /**
+     * @param array<string, mixed> $row
+     */
     private function hydrate(array $row): StaticPage
     {
         return new StaticPage(
