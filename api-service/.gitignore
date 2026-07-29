@@ -3,7 +3,7 @@
 /.vscode
 
 /.env.*
-!.env.dist
+!.env.example
 /bin/*
 !bin/console
 !bin/db-migrations
