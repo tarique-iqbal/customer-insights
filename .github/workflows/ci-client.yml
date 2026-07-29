@@ -1,0 +1,81 @@
+name: CI (web-user)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-client-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-client
+
+      - name: ESLint
+        working-directory: web-user
+        run: npm run lint
+
+  test:
+    name: Unit tests
+    needs: quality
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-client
+
+      - name: Run tests
+        working-directory: web-user
+        run: >
+          npm run test:coverage --
+          --reporter=default --reporter=junit --outputFile=build/junit.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-report
+          path: web-user/build/junit.xml
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-coverage
+          path: web-user/coverage
+          if-no-files-found: ignore
+          retention-days: 3
+
+  build:
+    name: Build
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-client
+
+      - name: Build
+        working-directory: web-user
+        run: npm run build
+
+      - name: Upload build output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-user-dist
+          path: web-user/dist
+          if-no-files-found: ignore
+          retention-days: 3
