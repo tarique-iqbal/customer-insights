@@ -13,12 +13,18 @@ export const sendContactMessage = async (
   try {
     const response = await http.post('/api/contact', data, { signal });
     return response.data;
-  } catch (error: any) {
-    if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+  } catch (error) {
+    const err = error as {
+      name?: string;
+      code?: string;
+      response?: { data?: { message?: string } };
+      message?: string;
+    };
+    if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
       throw new DOMException('Request aborted', 'AbortError');
     }
     throw new Error(
-      error.response?.data?.message || `Failed to send message: ${error.message}`
+      err.response?.data?.message || `Failed to send message: ${err.message}`
     );
   }
 };

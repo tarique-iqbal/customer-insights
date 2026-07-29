@@ -1,3 +1,4 @@
+import { TextEncoder, TextDecoder } from 'util';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, expect, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
@@ -35,10 +36,8 @@ afterEach(() => {
 
 // Polyfills
 if (typeof global.TextEncoder === 'undefined') {
-  const { TextEncoder } = require('util');
   global.TextEncoder = TextEncoder;
 }
 if (typeof global.TextDecoder === 'undefined') {
-  const { TextDecoder } = require('util');
-  global.TextDecoder = TextDecoder;
+  global.TextDecoder = TextDecoder as typeof global.TextDecoder;
 }

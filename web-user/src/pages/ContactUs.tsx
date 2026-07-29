@@ -31,8 +31,8 @@ const ContactUs: React.FC = () => {
       await sendContactMessage(data);
       setSubmitted(true);
       reset();
-    } catch (err: any) {
-      setServerError(err.message);
+    } catch (err) {
+      setServerError((err as { message?: string }).message ?? 'Something went wrong');
     }
   };
 
