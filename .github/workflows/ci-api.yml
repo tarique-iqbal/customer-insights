@@ -63,6 +63,7 @@ jobs:
           name: phpunit-unit-report
           path: api-service/build/unit
           if-no-files-found: ignore
+          retention-days: 3
 
   integration-tests:
     name: Integration tests
@@ -112,6 +113,7 @@ jobs:
           name: phpunit-integration-report
           path: api-service/build/integration
           if-no-files-found: ignore
+          retention-days: 3
 
       - name: Upload api-service logs
         if: always()
@@ -120,6 +122,7 @@ jobs:
           name: api-service-logs-integration
           path: api-service/var/log/*.log
           if-no-files-found: ignore
+          retention-days: 3
 
   functional-tests:
     name: Functional tests
@@ -169,6 +172,7 @@ jobs:
           name: phpunit-functional-report
           path: api-service/build/functional
           if-no-files-found: ignore
+          retention-days: 3
 
       - name: Upload api-service logs
         if: always()
@@ -177,3 +181,4 @@ jobs:
           name: api-service-logs-functional
           path: api-service/var/log/*.log
           if-no-files-found: ignore
+          retention-days: 3
