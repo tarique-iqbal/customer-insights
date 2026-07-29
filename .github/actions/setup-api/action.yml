@@ -1,0 +1,30 @@
+name: Setup api-service PHP environment
+description: Installs PHP 8.2 with required extensions, restores the Composer cache, and installs dependencies. Requires actions/checkout to be run first.
+
+inputs:
+  coverage:
+    description: Coverage driver to enable (none or pcov)
+    required: false
+    default: none
+
+runs:
+  using: composite
+  steps:
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, dom, pdo_mysql, zip
+        coverage: ${{ inputs.coverage }}
+        tools: composer:v2
+
+    - uses: actions/cache@v4
+      with:
+        path: api-service/vendor
+        key: ${{ runner.os }}-composer-${{ hashFiles('api-service/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Install Composer dependencies
+      shell: bash
+      working-directory: api-service
+      run: composer install --no-interaction --prefer-dist --no-progress

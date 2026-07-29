@@ -1,0 +1,171 @@
+name: CI (api-service)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-api-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MYSQL_DATABASE: csat
+  MYSQL_USER: local
+  MYSQL_PASSWORD: secret
+  MYSQL_ROOT_PASSWORD: secret
+
+jobs:
+  quality:
+    name: Lint, format & static analysis
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-api
+        with:
+          coverage: none
+
+      - name: php-cs-fixer (dry run)
+        working-directory: api-service
+        run: bin/php-cs-fixer fix --dry-run --diff
+
+      - name: phpstan
+        working-directory: api-service
+        run: bin/phpstan analyse src
+
+  unit-tests:
+    name: Unit tests
+    needs: quality
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-api
+        with:
+          coverage: pcov
+
+      - name: Run unit tests
+        working-directory: api-service
+        run: >
+          bin/phpunit tests/Unit
+          --log-junit=build/unit/junit.xml
+          --coverage-clover=build/unit/coverage.xml
+          --coverage-html=build/unit/coverage-html
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-unit-report
+          path: api-service/build/unit
+          if-no-files-found: ignore
+
+  integration-tests:
+    name: Integration tests
+    needs: unit-tests
+    runs-on: ubuntu-24.04
+    container: php:8.2-cli
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-api
+        with:
+          coverage: pcov
+
+      - name: Create .env.test
+        working-directory: api-service
+        run: cp .env.example .env.test
+
+      - name: Run integration tests
+        working-directory: api-service
+        run: >
+          bin/phpunit tests/Integration
+          --log-junit=build/integration/junit.xml
+          --coverage-clover=build/integration/coverage.xml
+          --coverage-html=build/integration/coverage-html
+
+      - name: Upload integration test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-integration-report
+          path: api-service/build/integration
+          if-no-files-found: ignore
+
+      - name: Upload api-service logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-service-logs-integration
+          path: api-service/var/log/*.log
+          if-no-files-found: ignore
+
+  functional-tests:
+    name: Functional tests
+    needs: integration-tests
+    runs-on: ubuntu-24.04
+    container: php:8.2-cli
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-api
+        with:
+          coverage: pcov
+
+      - name: Create .env.test
+        working-directory: api-service
+        run: cp .env.example .env.test
+
+      - name: Run functional tests
+        working-directory: api-service
+        run: >
+          bin/phpunit tests/Functional
+          --log-junit=build/functional/junit.xml
+          --coverage-clover=build/functional/coverage.xml
+          --coverage-html=build/functional/coverage-html
+
+      - name: Upload functional test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-functional-report
+          path: api-service/build/functional
+          if-no-files-found: ignore
+
+      - name: Upload api-service logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-service-logs-functional
+          path: api-service/var/log/*.log
+          if-no-files-found: ignore
