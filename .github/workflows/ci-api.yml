@@ -68,7 +68,6 @@ jobs:
     name: Integration tests
     needs: unit-tests
     runs-on: ubuntu-24.04
-    container: php:8.2-cli
     services:
       mysql:
         image: mysql:8.0
@@ -77,6 +76,8 @@ jobs:
           MYSQL_USER: ${{ env.MYSQL_USER }}
           MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
           MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+        ports:
+          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent"
           --health-interval=10s
@@ -88,6 +89,9 @@ jobs:
       - uses: ./.github/actions/setup-api
         with:
           coverage: pcov
+
+      - name: Point mysql hostname at the mapped service port
+        run: echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
 
       - name: Create .env.test
         working-directory: api-service
@@ -121,7 +125,6 @@ jobs:
     name: Functional tests
     needs: integration-tests
     runs-on: ubuntu-24.04
-    container: php:8.2-cli
     services:
       mysql:
         image: mysql:8.0
@@ -130,6 +133,8 @@ jobs:
           MYSQL_USER: ${{ env.MYSQL_USER }}
           MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
           MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+        ports:
+          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent"
           --health-interval=10s
@@ -141,6 +146,9 @@ jobs:
       - uses: ./.github/actions/setup-api
         with:
           coverage: pcov
+
+      - name: Point mysql hostname at the mapped service port
+        run: echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
 
       - name: Create .env.test
         working-directory: api-service
