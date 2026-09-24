@@ -63,7 +63,7 @@ final class CalculateCsatControllerTest extends FunctionalTestCase
     }
 
     #[DataProvider('week_provider')]
-    public function test_week_http_response_is_ok(string $sql, int $expectedNpsScore): void
+    public function test_week_http_response_is_ok(string $sql, int $expectedCsatScore): void
     {
         $this->connection->executeStatement($sql);
 
@@ -76,7 +76,7 @@ final class CalculateCsatControllerTest extends FunctionalTestCase
 
         self::assertNull($data['year']);
         self::assertEquals(20, $data['week']);
-        self::assertEquals($expectedNpsScore, $data['score']);
+        self::assertEquals($expectedCsatScore, $data['score']);
     }
 
     public function test_week_has_no_data_http_response_is_ok(): void
@@ -143,7 +143,7 @@ final class CalculateCsatControllerTest extends FunctionalTestCase
     }
 
     #[DataProvider('year_week_provider')]
-    public function test_year_week_http_response_is_ok(string $sql, int $expectedNpsScore): void
+    public function test_year_week_http_response_is_ok(string $sql, int $expectedCsatScore): void
     {
         $this->connection->executeStatement($sql);
 
@@ -156,7 +156,7 @@ final class CalculateCsatControllerTest extends FunctionalTestCase
 
         self::assertEquals(2025, $data['year']);
         self::assertEquals(20, $data['week']);
-        self::assertEquals($expectedNpsScore, $data['score']);
+        self::assertEquals($expectedCsatScore, $data['score']);
     }
 
     public function test_invalid_week_http_response_is_400(): void

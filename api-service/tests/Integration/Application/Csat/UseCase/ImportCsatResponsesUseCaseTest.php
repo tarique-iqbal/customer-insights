@@ -35,7 +35,7 @@ final class ImportCsatResponsesUseCaseTest extends IntegrationTestCase
         ]);
 
         $root = vfsStream::setup(sys_get_temp_dir());
-        $file = vfsStream::newFile('nps_week_2024_12.csv')
+        $file = vfsStream::newFile('csat_week_2024_12.csv')
             ->withContent("user_id,rating\n1,5\n2,4\n3,3\n")
             ->at($root);
 

@@ -12,7 +12,7 @@ use App\Infrastructure\Persistence\Schema\Tables;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Infrastructure\Database\IntegrationTestCase;
 
-final class CalculateWeeklyNpsScoreUseCaseTest extends IntegrationTestCase
+final class CalculateWeeklyCsatScoreUseCaseTest extends IntegrationTestCase
 {
     private CalculateWeeklyCsatScoreUseCase $useCase;
 
@@ -50,7 +50,7 @@ final class CalculateWeeklyNpsScoreUseCaseTest extends IntegrationTestCase
     }
 
     #[DataProvider('weekly_score_provider')]
-    public function test_calculates_correct_nps_score(array $weeklyScore, float $expectedNpsScore): void
+    public function test_calculates_correct_csat_score(array $weeklyScore, float $expectedCsatScore): void
     {
         $this->insertSampleScores($weeklyScore);
 
@@ -58,7 +58,7 @@ final class CalculateWeeklyNpsScoreUseCaseTest extends IntegrationTestCase
         $query = new CalculateWeeklyCsatScoreQuery($weekOfYear);
         $score = $this->useCase->execute($query);
 
-        $this->assertSame($expectedNpsScore, $score);
+        $this->assertSame($expectedCsatScore, $score);
     }
 
     private function insertSampleScores(array $rows): void

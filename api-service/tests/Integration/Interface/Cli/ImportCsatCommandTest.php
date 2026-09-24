@@ -12,7 +12,7 @@ use org\bovigo\vfs\vfsStreamFile;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
-final class ImportNpsCommandTest extends IntegrationTestCase
+final class ImportCsatCommandTest extends IntegrationTestCase
 {
     private vfsStreamFile $csvFile;
 
