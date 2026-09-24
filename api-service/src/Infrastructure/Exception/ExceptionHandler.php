@@ -28,12 +28,22 @@ final readonly class ExceptionHandler
 
     public function report(Throwable $exception): void
     {
-        $this->logger->error($exception->getMessage(), ['exception' => $exception]);
+        $this->log($exception);
 
         if (PHP_SAPI !== 'cli') {
             (new SapiEmitter())->emit($this->buildResponse($exception));
         } else {
             echo 'Unhandled error/exception: ' . $exception->getMessage() . PHP_EOL;
+        }
+    }
+
+    private function log(Throwable $exception): void
+    {
+        try {
+            $this->logger->error($exception->getMessage(), ['exception' => $exception]);
+        } catch (Throwable $loggingFailure) {
+            error_log('Failed to log exception: ' . $loggingFailure->getMessage());
+            error_log('Original exception: ' . $exception->getMessage());
         }
     }
 

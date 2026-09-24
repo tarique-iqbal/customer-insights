@@ -38,6 +38,21 @@ final class ExceptionHandlerTest extends TestCase
         $this->assertStringContainsString('Unhandled error/exception: Something went wrong', $output);
     }
 
+    public function test_report_does_not_crash_when_the_logger_itself_throws(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->method('error')
+            ->willThrowException(new RuntimeException('log file not writable'));
+
+        $handler = new ExceptionHandler($logger);
+
+        ob_start();
+        $handler->report(new RuntimeException('Something went wrong'));
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString('Unhandled error/exception: Something went wrong', $output);
+    }
+
     /**
      * @return array<string, array{0: \Throwable, 1: int}>
      */
