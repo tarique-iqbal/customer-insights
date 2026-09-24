@@ -1,3 +1,37 @@
-/.DS_Store
-/.idea
-/.vscode
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Local notes only
+notes/
+
+# api-service (PHP)
+api-service/.env.*
+!api-service/.env.example
+api-service/bin/*
+!api-service/bin/console
+!api-service/bin/db-migrations
+api-service/var/
+api-service/vendor/
+api-service/.php-cs-fixer.cache
+api-service/.phpunit.result.cache
+api-service/phpunit.xml
+
+# web-user (React/Vite)
+web-user/node_modules
+web-user/.pnp
+web-user/.pnp.js
+web-user/coverage
+web-user/dist
+web-user/build
+web-user/.env.local
+web-user/.env.development.local
+web-user/.env.test.local
+web-user/.env.production.local
+web-user/npm-debug.log*
+web-user/yarn-debug.log*
+web-user/yarn-error.log*
