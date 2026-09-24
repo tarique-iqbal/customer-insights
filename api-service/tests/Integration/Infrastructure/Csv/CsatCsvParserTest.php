@@ -51,4 +51,18 @@ final class CsatCsvParserTest extends TestCase
         self::assertEquals(new UserId(3), $results[2]->userId);
         self::assertEquals(new Score(3), $results[2]->score);
     }
+
+    public function test_skips_rows_with_a_non_positive_user_id_without_throwing(): void
+    {
+        $root = vfsStream::setup(sys_get_temp_dir());
+        $file = vfsStream::newFile('csat_week_2024_11.csv')
+            ->withContent("0,4\n-5,3\n9,5\n")
+            ->at($root);
+
+        $parser = new CsatCsvParser();
+        $results = iterator_to_array($parser->parse(new SplFileObject($file->url()), 11, 2024));
+
+        self::assertCount(1, $results);
+        self::assertEquals(new UserId(9), $results[0]->userId);
+    }
 }

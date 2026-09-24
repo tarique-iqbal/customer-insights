@@ -26,7 +26,11 @@ final class CsatCsvParser
 
             [$userId, $rating] = $row;
 
-            if (!is_numeric($userId) || !is_numeric($rating) || $rating < 1 || $rating > 5) {
+            if (!is_numeric($userId) || (int) $userId <= 0) {
+                continue;
+            }
+
+            if (!is_numeric($rating) || $rating < 1 || $rating > 5) {
                 continue;
             }
 
