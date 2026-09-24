@@ -79,7 +79,7 @@ customer-insights/
 │   ├── tsconfig.json
 │   └── vite.config.ts
 ├── docker/                    # Dockerfiles (php, nginx, web-user)
-├── docker-compose.yml
+├── compose.yml
 ├── .gitignore
 └── README.md
 ```
