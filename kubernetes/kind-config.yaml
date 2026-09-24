@@ -1,0 +1,14 @@
+# Local Phase 1 kind cluster — maps the same host ports `make up` uses
+# (8080 for the API, 5173 for the web app) onto NodePorts inside the cluster.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: csat
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 30173
+        hostPort: 5173
+        protocol: TCP
