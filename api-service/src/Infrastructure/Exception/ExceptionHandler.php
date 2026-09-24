@@ -31,19 +31,26 @@ final readonly class ExceptionHandler
         $this->logger->error($exception->getMessage(), ['exception' => $exception]);
 
         if (PHP_SAPI !== 'cli') {
-            if ($exception instanceof NotFoundException) {
-                $response = new JsonResponse(['error' => 'Route not found'], 404);
-            } elseif ($exception instanceof MethodNotAllowedException) {
-                $response = new JsonResponse(['error' => 'Method not allowed'], 405);
-            } elseif ($exception instanceof ContactMessageException) {
-                $response = new JsonResponse(['error' => $exception->getMessage()], 422, $this->corsHeaders);
-            } else {
-                $response = new JsonResponse(['error' => 'Unexpected error occurred'], 500);
-            }
-
-            (new SapiEmitter())->emit($response);
+            (new SapiEmitter())->emit($this->buildResponse($exception));
         } else {
             echo 'Unhandled error/exception: ' . $exception->getMessage() . PHP_EOL;
         }
+    }
+
+    public function buildResponse(Throwable $exception): JsonResponse
+    {
+        if ($exception instanceof NotFoundException) {
+            return new JsonResponse(['error' => 'Route not found'], 404, $this->corsHeaders);
+        }
+
+        if ($exception instanceof MethodNotAllowedException) {
+            return new JsonResponse(['error' => 'Method not allowed'], 405, $this->corsHeaders);
+        }
+
+        if ($exception instanceof ContactMessageException) {
+            return new JsonResponse(['error' => $exception->getMessage()], 422, $this->corsHeaders);
+        }
+
+        return new JsonResponse(['error' => 'Unexpected error occurred'], 500, $this->corsHeaders);
     }
 }
