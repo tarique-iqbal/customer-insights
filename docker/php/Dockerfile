@@ -30,9 +30,10 @@ COPY api-service/composer.json api-service/composer.lock /var/www/csat/
 
 RUN composer install --no-interaction --prefer-dist --no-scripts --no-progress
 
-COPY . .
+COPY api-service/. .
 
-RUN chown -R www-data:www-data /var/www/csat
+RUN mkdir -p var/log \
+    && chown -R www-data:www-data /var/www/csat
 
 EXPOSE 9000
 
