@@ -18,12 +18,17 @@ final readonly class SubmitContactController
     public function __invoke(ServerRequestInterface $request): ResponseInterface
     {
         $data = json_decode((string) $request->getBody(), true);
+        $data = is_array($data) ? $data : [];
 
-        $contactMessage = $this->useCase->execute(
-            $data['name'] ?? '',
-            $data['email'] ?? '',
-            $data['message'] ?? '',
-        );
+        $name = $data['name'] ?? '';
+        $email = $data['email'] ?? '';
+        $message = $data['message'] ?? '';
+
+        if (!is_string($name) || !is_string($email) || !is_string($message)) {
+            return new JsonResponse(['error' => 'name, email and message must be strings.'], 400);
+        }
+
+        $contactMessage = $this->useCase->execute($name, $email, $message);
 
         return new JsonResponse(
             ['id' => $contactMessage->id()?->value()],
