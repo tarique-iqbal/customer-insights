@@ -19,7 +19,8 @@ trait CreateDatabaseTrait
                     score SMALLINT UNSIGNED NOT NULL,
                     week SMALLINT UNSIGNED NOT NULL,
                     year SMALLINT UNSIGNED NOT NULL,
-                    UNIQUE KEY unique_user_week_year (user_id, week, year)
+                    UNIQUE KEY unique_user_week_year (user_id, week, year),
+                    KEY idx_year_week (year, week)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;',
                 Tables::CSAT_SCORES
             )
