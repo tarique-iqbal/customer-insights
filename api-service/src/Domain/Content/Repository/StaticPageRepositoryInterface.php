@@ -20,4 +20,9 @@ interface StaticPageRepositoryInterface
      * @return StaticPage[]
      */
     public function findAll(): array;
+
+    /**
+     * @return StaticPage[]
+     */
+    public function findAllPublished(): array;
 }

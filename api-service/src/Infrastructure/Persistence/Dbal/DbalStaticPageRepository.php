@@ -79,6 +79,15 @@ final readonly class DbalStaticPageRepository implements StaticPageRepositoryInt
         return array_map([$this, 'hydrate'], $rows);
     }
 
+    public function findAllPublished(): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf('SELECT * FROM %s WHERE published = 1 ORDER BY title ASC', Tables::STATIC_PAGES),
+        );
+
+        return array_map([$this, 'hydrate'], $rows);
+    }
+
     /**
      * @param array<string, mixed> $row
      */

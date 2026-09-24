@@ -18,6 +18,6 @@ final readonly class ListStaticPagesUseCase
      */
     public function execute(): array
     {
-        return $this->repository->findAll();
+        return $this->repository->findAllPublished();
     }
 }

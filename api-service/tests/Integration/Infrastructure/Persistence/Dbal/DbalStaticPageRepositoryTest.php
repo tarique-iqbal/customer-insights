@@ -26,7 +26,7 @@ final class DbalStaticPageRepositoryTest extends IntegrationTestCase
         $this->repository = new DbalStaticPageRepository($this->connection);
     }
 
-    private function createPage(string $slug, string $title, string $content): StaticPage
+    private function createPage(string $slug, string $title, string $content, bool $published = true): StaticPage
     {
         $page = new StaticPage(
             id: null,
@@ -34,6 +34,7 @@ final class DbalStaticPageRepositoryTest extends IntegrationTestCase
             title: new Title($title),
             content: new Content($content),
             createdAt: new DateTimeImmutable(),
+            published: $published,
         );
         $this->repository->save($page);
 
@@ -89,6 +90,18 @@ final class DbalStaticPageRepositoryTest extends IntegrationTestCase
         $slugs = array_map(fn (StaticPage $p) => (string) $p->slug(), $pages);
         self::assertContains('page-one', $slugs);
         self::assertContains('page-two', $slugs);
+    }
+
+    public function test_findAllPublished_excludes_unpublished_pages(): void
+    {
+        $this->createPage('page-one', 'Page One', 'First page content.');
+        $this->createPage('page-two', 'Page Two', 'Second page content.', published: false);
+
+        $pages = $this->repository->findAllPublished();
+
+        self::assertCount(1, $pages);
+        self::assertSame('page-one', (string) $pages[0]->slug());
+        self::assertCount(2, $this->repository->findAll());
     }
 
     public function test_it_updates_a_static_page(): void
