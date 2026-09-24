@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-WORKDIR /var/www/csat
+WORKDIR /var/www/api
 
 RUN apt-get update && apt-get install -y \
         git \
@@ -26,14 +26,14 @@ COPY docker/php/xdebug.ini /usr/local/etc/php/conf.d/
 
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-COPY api-service/composer.json api-service/composer.lock /var/www/csat/
+COPY api-service/composer.json api-service/composer.lock /var/www/api/
 
 RUN composer install --no-interaction --prefer-dist --no-scripts --no-progress
 
 COPY api-service/. .
 
 RUN mkdir -p var/log \
-    && chown -R www-data:www-data /var/www/csat
+    && chown -R www-data:www-data /var/www/api
 
 EXPOSE 9000
 
