@@ -53,4 +53,22 @@ final class WeekOfYearTest extends TestCase
         self::assertSame(53, $weekOfYear->week());
         self::assertSame(2015, $weekOfYear->year());
     }
+
+    public function test_throws_exception_for_negative_year(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new WeekOfYear(10, -50);
+    }
+
+    public function test_throws_exception_for_year_before_2000(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new WeekOfYear(10, 1999);
+    }
+
+    public function test_throws_exception_for_year_far_in_the_future(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new WeekOfYear(10, 99999);
+    }
 }

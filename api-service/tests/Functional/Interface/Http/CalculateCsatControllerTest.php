@@ -170,4 +170,16 @@ final class CalculateCsatControllerTest extends FunctionalTestCase
 
         self::assertArrayHasKey('error', $data);
     }
+
+    public function test_year_far_in_the_future_http_response_is_400(): void
+    {
+        $request = $this->psrFactory->createServerRequest('GET', '/api/csat/99999/20');
+        $response = $this->kernel->handle($request);
+
+        self::assertEquals(400, $response->getStatusCode());
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        self::assertArrayHasKey('error', $data);
+    }
 }

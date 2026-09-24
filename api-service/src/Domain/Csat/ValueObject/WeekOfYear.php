@@ -18,6 +18,8 @@ final readonly class WeekOfYear
         }
 
         if ($year !== null) {
+            new Year($year);
+
             $maxWeek = (int) (new DateTimeImmutable("{$this->year}-12-28"))->format('W');
 
             if ($this->week > $maxWeek) {
