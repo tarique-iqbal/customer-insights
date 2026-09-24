@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  namespace: csat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      containers:
+        - name: php
+          image: csat-php:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - name: env
+              mountPath: /var/www/api/.env.dev
+              subPath: .env.dev
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: env
+          configMap:
+            name: api-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php
+  namespace: csat
+spec:
+  selector:
+    app: php
+  ports:
+    - port: 9000
+      targetPort: 9000
