@@ -1,6 +1,6 @@
-# Phase 1: single replica, emptyDir volume — data does not need to survive
-# a pod restart yet. Phase 2 switches this to a PVC; Phase 4 replaces it
-# with Amazon RDS entirely.
+# Phase 1: single replica, data on an emptyDir. It survives a container
+# crash but is lost when the Pod is replaced (rollout restart, image change).
+# Phase 2 switches this to a PVC; Phase 4 replaces it with Amazon RDS.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -9,7 +9,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate # a second MySQL pod can't share the same emptyDir
+    type: Recreate # never run two MySQL pods at once behind the same Service
   selector:
     matchLabels:
       app: mysql
