@@ -35,15 +35,20 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/mysql
+          # Readiness and liveness stay off until this succeeds, so a slow
+          # first-time init (up to ~150s) can't get the container killed.
+          startupProbe:
+            exec:
+              command: ["mysqladmin", "ping", "-uroot", "-psecret"]
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             exec:
               command: ["mysqladmin", "ping", "-uroot", "-psecret"]
-            initialDelaySeconds: 10
             periodSeconds: 5
           livenessProbe:
             exec:
               command: ["mysqladmin", "ping", "-uroot", "-psecret"]
-            initialDelaySeconds: 30
             periodSeconds: 10
       volumes:
         - name: data
