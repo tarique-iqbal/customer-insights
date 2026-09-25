@@ -20,6 +20,10 @@ vi.mock('@/pages/CsatDetails', () => ({
   default: () => <div>CSAT Details Page</div>,
 }));
 
+vi.mock('@/pages/NotFound', () => ({
+  default: () => <div>Not Found Page</div>,
+}));
+
 describe('AppRoutes', () => {
   it('renders Home page for root path', () => {
     render(
@@ -64,5 +68,14 @@ describe('AppRoutes', () => {
       </MemoryRouter>
     );
     expect(screen.getByText('CSAT Details Page')).toBeInTheDocument();
+  });
+
+  it('renders Not Found page for an unknown path', () => {
+    render(
+      <MemoryRouter initialEntries={['/csat/2022/21/extra']}>
+        <AppRoutes />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Not Found Page')).toBeInTheDocument();
   });
 });

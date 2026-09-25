@@ -5,6 +5,7 @@ import Home from '@/pages/Home';
 import About from '@/pages/About';
 import ContactUs from '@/pages/ContactUs';
 import CsatDetails from '@/pages/CsatDetails';
+import NotFound from '@/pages/NotFound';
 
 const AppRoutes: React.FC = () => (
   <Routes>
@@ -13,6 +14,7 @@ const AppRoutes: React.FC = () => (
     <Route path="/contact-us" element={<ContactUs />} />
     <Route path="/csat/:week" element={<CsatDetails />} />
     <Route path="/csat/:year/:week" element={<CsatDetails />} />
+    <Route path="*" element={<NotFound />} />
   </Routes>
 );
 
