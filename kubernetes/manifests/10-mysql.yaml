@@ -1,6 +1,18 @@
-# Phase 1: single replica, data on an emptyDir. It survives a container
-# crash but is lost when the Pod is replaced (rollout restart, image change).
-# Phase 2 switches this to a PVC; Phase 4 replaces it with Amazon RDS.
+# Single replica with data on a PVC, so it survives Pod replacement (rollout
+# restart, image change). kind's default StorageClass provisions the volume
+# on the node, so `kind delete cluster` still wipes it. Phase 4 replaces this
+# with Amazon RDS.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data
+  namespace: csat
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -52,7 +64,8 @@ spec:
             periodSeconds: 10
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: mysql-data
 ---
 apiVersion: v1
 kind: Service
