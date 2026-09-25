@@ -1,27 +1,17 @@
-# Single replica with data on a PVC, so it survives Pod replacement (rollout
-# restart, image change). kind's default StorageClass provisions the volume
+# Single replica on a StatefulSet: the Pod keeps a stable identity (mysql-0),
+# is never replaced while the old one might still be running, and its PVC
+# (data-mysql-0) is created by volumeClaimTemplates, so deleting this file
+# doesn't delete the data. kind's default StorageClass provisions the volume
 # on the node, so `kind delete cluster` still wipes it. Phase 4 replaces this
 # with Amazon RDS.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-data
-  namespace: csat
-spec:
-  accessModes: ["ReadWriteOnce"]
-  resources:
-    requests:
-      storage: 1Gi
----
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mysql
   namespace: csat
 spec:
   replicas: 1
-  strategy:
-    type: Recreate # never run two MySQL pods at once behind the same Service
+  serviceName: mysql # the client Service below; per-pod DNS would need a headless one
   selector:
     matchLabels:
       app: mysql
@@ -62,10 +52,14 @@ spec:
             exec:
               command: ["mysqladmin", "ping", "-uroot", "-psecret"]
             periodSeconds: 10
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: mysql-data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
