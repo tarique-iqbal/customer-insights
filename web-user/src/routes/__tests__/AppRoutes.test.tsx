@@ -56,4 +56,13 @@ describe('AppRoutes', () => {
     );
     expect(screen.getByText('CSAT Details Page')).toBeInTheDocument();
   });
+
+  it('renders CSAT Details page for /csat/:year/:week', () => {
+    render(
+      <MemoryRouter initialEntries={['/csat/2022/21']}>
+        <AppRoutes />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('CSAT Details Page')).toBeInTheDocument();
+  });
 });

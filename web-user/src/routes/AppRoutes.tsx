@@ -12,6 +12,7 @@ const AppRoutes: React.FC = () => (
     <Route path="/about" element={<About />} />
     <Route path="/contact-us" element={<ContactUs />} />
     <Route path="/csat/:week" element={<CsatDetails />} />
+    <Route path="/csat/:year/:week" element={<CsatDetails />} />
   </Routes>
 );
 

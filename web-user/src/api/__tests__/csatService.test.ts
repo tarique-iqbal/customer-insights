@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getCsatByWeek } from '@/api/csatService';
+import { getCsatByWeek, getCsatByYearWeek } from '@/api/csatService';
 
 vi.mock('@/api/http', () => ({
   default: {
@@ -48,5 +48,27 @@ describe('getCsatByWeek', () => {
 
     await expect(getCsatByWeek(mockWeek, controller.signal))
       .rejects.toThrow(DOMException);
+  });
+});
+
+describe('getCsatByYearWeek', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should request the year and week and return CSAT data', async () => {
+    const mockData = { week: 21, year: 2022, score: 70 };
+    (http.get as vi.Mock).mockResolvedValueOnce({ data: mockData });
+
+    const result = await getCsatByYearWeek('2022', '21');
+
+    expect(http.get).toHaveBeenCalledWith('/api/csat/2022/21', { signal: undefined });
+    expect(result).toEqual(mockData);
+  });
+
+  it('should throw formatted error when request fails', async () => {
+    (http.get as vi.Mock).mockRejectedValueOnce(new Error('Server Error'));
+
+    await expect(getCsatByYearWeek('2022', '21')).rejects.toThrow('Failed to fetch CSAT: Server Error');
   });
 });

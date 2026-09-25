@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getCsatByWeek, CsatEntry } from '@/api/csatService';
+import { getCsatByWeek, getCsatByYearWeek, CsatEntry } from '@/api/csatService';
 import MainLayout from '@/layouts/MainLayout';
 import Nav from '@/components/Nav';
 
 const CsatDetails: React.FC = () => {
-  const { week } = useParams<{ week: string }>();
+  const { year, week } = useParams<{ year?: string; week: string }>();
   const [data, setData] = useState<CsatEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +17,11 @@ const CsatDetails: React.FC = () => {
     setData(null);
     setError(null);
 
-    getCsatByWeek(week, controller.signal)
+    const request = year
+      ? getCsatByYearWeek(year, week, controller.signal)
+      : getCsatByWeek(week, controller.signal);
+
+    request
       .then(setData)
       .catch((err) => {
         if (err.name !== 'AbortError') {
@@ -28,7 +32,7 @@ const CsatDetails: React.FC = () => {
     return () => {
       controller.abort();
     };
-  }, [week]);
+  }, [year, week]);
 
   return (
     <MainLayout left={<Nav />}>
@@ -40,7 +44,7 @@ const CsatDetails: React.FC = () => {
 
       {data && (
         <div>
-          <h2>CSAT week #{data.week}</h2>
+          <h2>CSAT week #{data.week}{data.year ? ` (${data.year})` : ''}</h2>
           <p><strong>Score:</strong> {data.score}%</p>
         </div>
       )}
