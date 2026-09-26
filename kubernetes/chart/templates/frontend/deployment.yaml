@@ -1,0 +1,38 @@
+# CMD ["npm", "start"] runs `vite`, which already binds 0.0.0.0:5173 per
+# vite.config.ts (server.host: true, server.port: 5173) — no command
+# override needed here, unlike compose.yml's web-user service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-user
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: web-user
+  template:
+    metadata:
+      labels:
+        app: web-user
+    spec:
+      containers:
+        - name: web-user
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: 5173
+          env:
+            - name: VITE_API_URL
+              value: {{ .Values.frontend.apiUrl | quote }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5173
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5173
+            initialDelaySeconds: 15
+            periodSeconds: 10
