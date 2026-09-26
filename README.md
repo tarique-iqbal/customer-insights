@@ -126,6 +126,7 @@ See each app's own commands (single test/file runs, migrations, linting, etc.) i
 | `GET` | `/api/csat/{year}/{week}` | CSAT score for a specific week and year |
 | `GET` | `/api/static-pages` | List published static pages |
 | `POST` | `/api/contact` | Submit a contact message |
+| `GET` | `/healthz` | Health check for probes; returns `{"status":"ok"}` without touching the database |
 
 ## Testing & CI
 
