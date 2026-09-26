@@ -1,0 +1,59 @@
+# Defaults shared by every environment; values-dev.yaml overrides them for the
+# local kind cluster.
+#
+# Resource names (mysql, php, nginx, web-user) are fixed on purpose: nginx's
+# default.conf reaches php at "php:9000" and the app reaches the database at
+# "mysql", so a per-release name prefix would break both. Install one release
+# per namespace.
+
+api:
+  appEnv: dev
+  corsAllowOrigin: http://localhost:5173
+
+mysql:
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+  database: csat
+  user: local
+  storage: 1Gi
+  # Name of an existing Secret with the keys "password" (the app user's
+  # password, also passed to the app as DB_PASS) and "root-password". This is
+  # how production supplies credentials, so nothing sensitive reaches git or
+  # the Helm release. If empty, the chart creates a Secret named "csat-db"
+  # from `credentials` below, which is meant for local development only.
+  existingSecret: ""
+  credentials:
+    password: ""
+    rootPassword: ""
+
+backend:
+  image:
+    repository: csat-php
+    tag: local
+    pullPolicy: IfNotPresent
+  replicas: 1
+
+nginx:
+  image:
+    repository: csat-nginx
+    tag: local
+    pullPolicy: IfNotPresent
+  replicas: 1
+  service:
+    type: ClusterIP
+    nodePort: null
+
+frontend:
+  image:
+    repository: csat-web-user
+    tag: local
+    pullPolicy: IfNotPresent
+  replicas: 1
+  # Browser-facing URL: it must resolve from the developer's machine, not from
+  # inside the cluster.
+  apiUrl: http://localhost:8080
+  service:
+    type: ClusterIP
+    nodePort: null

@@ -1,0 +1,18 @@
+# Local kind cluster: kubernetes/kind-config.yaml maps host ports 8080 and 5173
+# onto these NodePorts.
+mysql:
+  # Throwaway dev credentials, the same values compose.yml uses. Production
+  # sets mysql.existingSecret instead and keeps the real values out of git.
+  credentials:
+    password: secret
+    rootPassword: secret
+
+nginx:
+  service:
+    type: NodePort
+    nodePort: 30080
+
+frontend:
+  service:
+    type: NodePort
+    nodePort: 30173
