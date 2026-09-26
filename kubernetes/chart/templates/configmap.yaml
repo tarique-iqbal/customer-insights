@@ -1,0 +1,13 @@
+# Non-secret settings, injected into the php container as environment
+# variables. The app reads them from the real environment (config/load_env.php
+# treats the .env file as optional). DB_PASS comes from the Secret instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+data:
+  APP_ENV: {{ .Values.api.appEnv | quote }}
+  DB_NAME: {{ .Values.mysql.database | quote }}
+  DB_USER: {{ .Values.mysql.user | quote }}
+  DB_HOST: mysql
+  CORS_ALLOW_ORIGIN: {{ .Values.api.corsAllowOrigin | quote }}
