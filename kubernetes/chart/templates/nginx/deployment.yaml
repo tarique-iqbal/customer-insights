@@ -20,8 +20,12 @@ spec:
           imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
           ports:
             - containerPort: 80
+          # Readiness goes end to end (nginx -> php-fpm -> app), so traffic
+          # only reaches a Pod that can really serve it. Liveness stays a TCP
+          # check on nginx itself: restarting nginx wouldn't fix a broken php.
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /healthz
               port: 80
             initialDelaySeconds: 5
             periodSeconds: 5
