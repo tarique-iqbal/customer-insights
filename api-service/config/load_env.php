@@ -9,4 +9,6 @@ $env = $_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? 'dev';
 $envFile = '.env.' . $env;
 
 $dotenv = Dotenv::createImmutable(BASE_DIR, $envFile);
-$dotenv->load();
+// The file is optional; real environment variables take precedence over it.
+$dotenv->safeLoad();
+$dotenv->required(['DB_NAME', 'DB_USER', 'DB_PASS', 'DB_HOST']);
