@@ -14,6 +14,10 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
+    // Vite rejects unrecognized Host headers by default (DNS-rebinding
+    // protection). Compose reaches it as "localhost"; the kind Ingress
+    // reaches it as "app.localtest.me" — allow both, not every host.
+    allowedHosts: ['localhost', 'app.localtest.me'],
     watch: {
       usePolling: true,
       interval: 500,
