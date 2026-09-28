@@ -27,6 +27,17 @@ mysql:
   credentials:
     password: ""
     rootPassword: ""
+  # Rough starting numbers, not yet tuned from real metrics (no
+  # metrics-server in kind). No CPU limit anywhere: a limit only throttles,
+  # it doesn't protect the node the way a memory limit does. InnoDB's buffer
+  # pool is the main memory consumer, generous here since MySQL is the one
+  # thing that shouldn't get OOMKilled mid-write.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
 
 backend:
   image:
@@ -34,6 +45,17 @@ backend:
     tag: local
     pullPolicy: IfNotPresent
   replicas: 1
+  # docker/php/php.ini caps a single script at memory_limit=512M — that's
+  # PHP's per-worker ceiling, not the container's. pm.max_children=5 means up
+  # to 5 workers could each want that much in theory (2.5Gi worst case), but
+  # real usage for this app is far below it. The 512Mi limit below covers one
+  # worker's worth as a rough number, not a measured one.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
 
 nginx:
   image:
@@ -44,6 +66,13 @@ nginx:
   service:
     type: ClusterIP
     nodePort: null
+  # Just a reverse proxy to php — lightweight.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
 
 frontend:
   image:
@@ -57,3 +86,11 @@ frontend:
   service:
     type: ClusterIP
     nodePort: null
+  # The Vite dev server (esbuild + Node) is heavier than a static prod build
+  # would be — Phase 3 replaces this with a built bundle served by nginx.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi

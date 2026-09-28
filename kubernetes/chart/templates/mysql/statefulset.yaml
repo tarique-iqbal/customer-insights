@@ -23,6 +23,8 @@ spec:
         - name: mysql
           image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
           imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.mysql.resources | nindent 12 }}
           ports:
             - containerPort: 3306
           env:

@@ -20,6 +20,8 @@ spec:
         - name: php
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
           imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
           ports:
             - containerPort: 9000
           envFrom:

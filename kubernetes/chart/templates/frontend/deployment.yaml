@@ -19,6 +19,8 @@ spec:
         - name: web-user
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
           ports:
             - containerPort: 5173
           env:
