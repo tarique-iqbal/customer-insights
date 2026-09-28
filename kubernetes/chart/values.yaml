@@ -56,6 +56,15 @@ backend:
       memory: 128Mi
     limits:
       memory: 512Mi
+  # Disabled by default; values-dev.yaml turns it on. When enabled, .replicas
+  # above is ignored by the Deployment template — the HPA owns replica count
+  # instead, and leaving both set would fight each other on every
+  # `helm upgrade` (Helm resets it, the HPA changes it back).
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
 
 nginx:
   image:
@@ -73,6 +82,12 @@ nginx:
       memory: 32Mi
     limits:
       memory: 64Mi
+  # See backend.autoscaling for why .replicas is ignored when this is enabled.
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
 
 frontend:
   image:
@@ -94,6 +109,12 @@ frontend:
       memory: 128Mi
     limits:
       memory: 256Mi
+  # See backend.autoscaling for why .replicas is ignored when this is enabled.
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
 
 # Disabled by default; values-dev.yaml turns it on. Production would set its
 # real hostnames and switch className/annotations for the AWS Load Balancer

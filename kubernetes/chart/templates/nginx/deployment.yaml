@@ -5,7 +5,9 @@ kind: Deployment
 metadata:
   name: nginx
 spec:
+  {{- if not .Values.nginx.autoscaling.enabled }}
   replicas: {{ .Values.nginx.replicas }}
+  {{- end }}
   # See templates/backend/deployment.yaml for why this is explicit.
   strategy:
     type: RollingUpdate

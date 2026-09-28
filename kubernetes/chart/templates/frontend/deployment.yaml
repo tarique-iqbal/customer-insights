@@ -6,7 +6,9 @@ kind: Deployment
 metadata:
   name: web-user
 spec:
+  {{- if not .Values.frontend.autoscaling.enabled }}
   replicas: {{ .Values.frontend.replicas }}
+  {{- end }}
   # See templates/backend/deployment.yaml for why this is explicit.
   strategy:
     type: RollingUpdate

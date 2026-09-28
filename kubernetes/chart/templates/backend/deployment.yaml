@@ -3,7 +3,9 @@ kind: Deployment
 metadata:
   name: php
 spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
   replicas: {{ .Values.backend.replicas }}
+  {{- end }}
   # Explicit, not relying on the Deployment default (25%/25%, which happens
   # to round to the same thing at 1 replica but stops being zero-downtime if
   # replicas ever changes): always start the new Pod and wait for it to be

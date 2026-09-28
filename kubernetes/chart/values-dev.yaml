@@ -9,6 +9,16 @@ mysql:
     password: secret
     rootPassword: secret
 
+# Needs metrics-server installed separately (like ingress-nginx above, not
+# part of this chart — see notes/k8s-roadmap.md for the install command).
+backend:
+  autoscaling:
+    enabled: true
+
+nginx:
+  autoscaling:
+    enabled: true
+
 # *.localtest.me resolves to 127.0.0.1 by design (a public DNS wildcard), so
 # these work with no /etc/hosts edit.
 api:
@@ -16,6 +26,8 @@ api:
 
 frontend:
   apiUrl: http://api.localtest.me
+  autoscaling:
+    enabled: true
 
 ingress:
   enabled: true
