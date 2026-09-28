@@ -1,14 +1,23 @@
-# Local Phase 1 kind cluster — maps the same host ports `make up` uses
-# (8080 for the API, 5173 for the web app) onto NodePorts inside the cluster.
+# Local kind cluster, set up for kind's standard ingress-nginx recipe:
+# https://kind.sigs.k8s.io/docs/user/ingress/
+# Host ports 80/443 map onto the node, which ingress-nginx listens on via a
+# hostPort-backed Service — replaces the earlier per-service NodePorts, since
+# an Ingress is how a real cluster is actually reached.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: csat
 nodes:
   - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
     extraPortMappings:
-      - containerPort: 30080
-        hostPort: 8080
+      - containerPort: 80
+        hostPort: 80
         protocol: TCP
-      - containerPort: 30173
-        hostPort: 5173
+      - containerPort: 443
+        hostPort: 443
         protocol: TCP

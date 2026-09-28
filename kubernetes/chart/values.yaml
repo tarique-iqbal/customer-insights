@@ -94,3 +94,12 @@ frontend:
       memory: 128Mi
     limits:
       memory: 256Mi
+
+# Disabled by default; values-dev.yaml turns it on. Production would set its
+# real hostnames and switch className/annotations for the AWS Load Balancer
+# Controller (Phase 4).
+ingress:
+  enabled: false
+  className: nginx
+  apiHost: ""
+  appHost: ""
