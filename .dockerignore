@@ -6,6 +6,9 @@
 
 api-service/vendor/
 api-service/var/
+api-service/bin/*
+!api-service/bin/console
+!api-service/bin/db-migrations
 
 api-service/.env.dev
 api-service/.env.test
