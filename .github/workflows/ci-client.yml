@@ -79,3 +79,39 @@ jobs:
           path: web-user/dist
           if-no-files-found: ignore
           retention-days: 3
+
+  publish:
+    name: Publish image
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Still the dev-server image (npm start / vite), not a static build —
+      # VITE_API_URL is inlined at build time by `vite build`, and there's no
+      # single correct value to bake in across environments. A real prod
+      # image needs that solved first (e.g. a runtime-generated env.js), so
+      # it's queued separately rather than done here.
+      - name: Build and push csat-web-user
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/web-user/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/csat-web-user:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/csat-web-user:latest
+          cache-from: type=gha,scope=csat-web-user
+          cache-to: type=gha,mode=max,scope=csat-web-user
