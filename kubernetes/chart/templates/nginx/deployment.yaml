@@ -6,6 +6,12 @@ metadata:
   name: nginx
 spec:
   replicas: {{ .Values.nginx.replicas }}
+  # See templates/backend/deployment.yaml for why this is explicit.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: nginx

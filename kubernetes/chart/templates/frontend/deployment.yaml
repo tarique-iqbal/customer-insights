@@ -7,6 +7,12 @@ metadata:
   name: web-user
 spec:
   replicas: {{ .Values.frontend.replicas }}
+  # See templates/backend/deployment.yaml for why this is explicit.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: web-user
