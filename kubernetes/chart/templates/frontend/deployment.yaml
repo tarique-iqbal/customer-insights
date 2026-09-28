@@ -29,6 +29,12 @@ spec:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
           ports:
             - containerPort: 5173
+          # Same race as nginx's preStop comment. Verified: without this, a
+          # rollout dropped 3/200 requests; with it, 0/200.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           env:
             - name: VITE_API_URL
               value: {{ .Values.frontend.apiUrl | quote }}

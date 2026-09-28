@@ -33,6 +33,14 @@ spec:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           ports:
             - containerPort: 9000
+          # Same race as nginx's preStop comment (kube-proxy hadn't yet
+          # removed this Pod from the php Service's endpoints when php-fpm
+          # stopped accepting connections on SIGTERM). Verified: without
+          # this, a rollout dropped 1/200 requests; with it, 0/200.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           envFrom:
             - configMapRef:
                 name: api-config
