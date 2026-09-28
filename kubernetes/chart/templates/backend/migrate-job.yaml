@@ -1,0 +1,41 @@
+# Runs the pending migrations on every install and upgrade, so "helm upgrade"
+# is the only deploy step — no more manual `kubectl exec ... migrations:migrate`.
+# hook-delete-policy removes the previous run's Job first (Jobs are immutable,
+# a second `helm upgrade` would otherwise fail to recreate it) and cleans up
+# after a successful run; a failed run is left behind for `kubectl logs`.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        # Helm doesn't gate a hook on the main resources being Ready, so wait
+        # for MySQL ourselves rather than let migrations fail on a cold start.
+        - name: wait-for-mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          command:
+            - sh
+            - -c
+            - until mysqladmin ping -h mysql --silent; do echo "waiting for mysql"; sleep 2; done
+      containers:
+        - name: migrate
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          command: ["bin/db-migrations", "migrations:migrate", "--no-interaction"]
+          envFrom:
+            - configMapRef:
+                name: api-config
+          env:
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "csat.dbSecretName" . }}
+                  key: password
