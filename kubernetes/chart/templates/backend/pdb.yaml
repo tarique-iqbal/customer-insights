@@ -1,0 +1,15 @@
+# maxUnavailable, not minAvailable: this Deployment idles at 1 replica
+# (HPA's minReplicas), and minAvailable:1 would block every voluntary
+# disruption (e.g. a node drain) forever whenever it's at that resting
+# state, since going to 0 even momentarily would violate it. maxUnavailable:1
+# is a no-op at 1 replica (nothing better is possible there anyway) but
+# genuinely protects once the HPA has scaled out under load.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: php
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: php

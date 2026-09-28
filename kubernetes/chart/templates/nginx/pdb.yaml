@@ -1,0 +1,11 @@
+# See templates/backend/pdb.yaml for why this is maxUnavailable, not
+# minAvailable.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nginx
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: nginx
