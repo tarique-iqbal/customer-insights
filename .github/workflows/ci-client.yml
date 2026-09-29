@@ -99,14 +99,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Still the dev-server image (npm start / vite), not a static build —
-      # VITE_API_URL is inlined at build time by `vite build`, and there's no
-      # single correct value to bake in across environments. A real prod
-      # image needs that solved first (e.g. a runtime-generated env.js), so
-      # it's queued separately rather than done here.
-      - name: Build and push csat-web-user
+      - name: Build and push csat-web-user (prod target — see docker/web-user/Dockerfile)
         uses: docker/build-push-action@v6
         with:
+          target: prod
           context: .
           file: docker/web-user/Dockerfile
           push: true
