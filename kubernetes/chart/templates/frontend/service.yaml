@@ -7,8 +7,8 @@ spec:
   selector:
     app: web-user
   ports:
-    - port: 5173
-      targetPort: 5173
+    - port: {{ .Values.frontend.containerPort }}
+      targetPort: {{ .Values.frontend.containerPort }}
       {{- if eq .Values.frontend.service.type "NodePort" }}
       nodePort: {{ .Values.frontend.service.nodePort }}
       {{- end }}

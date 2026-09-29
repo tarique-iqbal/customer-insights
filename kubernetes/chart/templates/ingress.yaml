@@ -1,8 +1,8 @@
 # Routes by hostname to the two ClusterIP Services already in the chart —
 # api.localtest.me -> nginx (the API), app.localtest.me -> web-user.
 # *.localtest.me is a public DNS wildcard for 127.0.0.1, so this needs no
-# /etc/hosts edit locally. In production this would use real hostnames and
-# an ALB-specific className/annotations instead (Phase 4).
+# /etc/hosts edit locally. A real deployment would use real hostnames and an
+# ALB-specific className/annotations instead of ingress-nginx.
 {{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -30,5 +30,5 @@ spec:
               service:
                 name: web-user
                 port:
-                  number: 5173
+                  number: {{ .Values.frontend.containerPort }}
 {{- end }}

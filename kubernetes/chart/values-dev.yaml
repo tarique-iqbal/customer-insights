@@ -34,6 +34,13 @@ frontend:
   apiUrl: http://api.localtest.me
   autoscaling:
     enabled: true
+  # The CI-published static prod image (verified: nginx-served, no
+  # node/npm, real env.js runtime config). Manual, static reference — bump
+  # by hand after a push, same as backend.image above.
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
+    tag: "0fea83f9581da9318ef6725f92bed7921766fb00"
+  containerPort: 80
 
 ingress:
   enabled: true

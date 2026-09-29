@@ -1,6 +1,6 @@
-# CMD ["npm", "start"] runs `vite`, which already binds 0.0.0.0:5173 per
-# vite.config.ts (server.host: true, server.port: 5173) — no command
-# override needed here, unlike compose.yml's web-user service.
+# frontend.containerPort must match whichever image is configured: the dev
+# image runs the Vite dev server (5173, no command override needed — vite.config.ts
+# already sets server.host/port), the static prod image runs nginx (80).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,7 +30,7 @@ spec:
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
           ports:
-            - containerPort: 5173
+            - containerPort: {{ .Values.frontend.containerPort }}
           # Same race as nginx's preStop comment. Verified: without this, a
           # rollout dropped 3/200 requests; with it, 0/200.
           lifecycle:
@@ -43,12 +43,12 @@ spec:
           readinessProbe:
             httpGet:
               path: /
-              port: 5173
+              port: {{ .Values.frontend.containerPort }}
             initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
             httpGet:
               path: /
-              port: 5173
+              port: {{ .Values.frontend.containerPort }}
             initialDelaySeconds: 15
             periodSeconds: 10

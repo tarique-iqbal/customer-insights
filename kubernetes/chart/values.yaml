@@ -95,6 +95,9 @@ frontend:
     tag: local
     pullPolicy: IfNotPresent
   replicas: 1
+  # The dev image runs the Vite dev server (5173); the static prod image runs
+  # nginx (80). This must match whichever one containerPort/image point at.
+  containerPort: 5173
   # Browser-facing URL: it must resolve from the developer's machine, not from
   # inside the cluster.
   apiUrl: http://localhost:8080
