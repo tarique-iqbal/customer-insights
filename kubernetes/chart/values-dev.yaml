@@ -14,6 +14,12 @@ mysql:
 backend:
   autoscaling:
     enabled: true
+  # The CI-published prod image (verified: no xdebug, no dev deps), pinned to
+  # the exact commit whose Actions run was checked. This is a manual, static
+  # reference — it does not update itself, so bump it by hand after a push.
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
+    tag: "7b305bf5371b3319f68cacdfbae3c73a296fe036"
 
 nginx:
   autoscaling:
