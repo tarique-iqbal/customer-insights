@@ -21,19 +21,16 @@ This repo has two independent apps that talk to each other purely over HTTP — 
 
 ## Tech Stack
 
-**Backend** (`api-service/`)
-- PHP 8.2, Composer
-- `league/route` (routing), `php-di` (DI container), `doctrine/dbal` + `doctrine/migrations` (persistence, no ORM), `monolog` (logging)
-- MySQL 8.0
-- PHPUnit, PHPStan (level 8), PHP-CS-Fixer
-
-**Frontend** (`web-user/`)
-- React 19, TypeScript, Vite
-- `react-hook-form` + `zod`, `@tanstack/react-query`
-- Vitest + Testing Library, ESLint
-
-**Infrastructure**
-- Docker Compose (`php`, `nginx`, `mysql`, `web-user` services)
+| Area | Stack |
+|---|---|
+| Backend (`api-service/`) | PHP 8.2, Composer |
+| | `league/route` (routing), `php-di` (DI container), `doctrine/dbal` + `doctrine/migrations` (persistence, no ORM), `monolog` (logging) |
+| | MySQL 8.0 |
+| | PHPUnit, PHPStan (level 8), PHP-CS-Fixer |
+| Frontend (`web-user/`) | React 19, TypeScript, Vite |
+| | `react-hook-form` + `zod`, `@tanstack/react-query` |
+| | Vitest + Testing Library, ESLint |
+| Infrastructure | Docker Compose (`php`, `nginx`, `mysql`, `web-user` services) |
 
 ## Project Structure
 
@@ -60,18 +57,12 @@ customer-insights/
 │   ├── public/
 │   │   └── assets/
 │   ├── src/
-│   │   ├── api/
-│   │   │   └── __tests__/     # API client tests
+│   │   ├── api/               # each has its own __tests__
 │   │   ├── components/
-│   │   │   └── __tests__/     # Component tests
 │   │   ├── layouts/
-│   │   │   └── __tests__/     # Layout tests
 │   │   ├── pages/
-│   │   │   └── __tests__/     # Page tests
 │   │   ├── routes/
-│   │   │   └── __tests__/     # Routing tests
 │   │   ├── utils/
-│   │   │   └── __tests__/     # Utility tests
 │   │   ├── App.tsx
 │   │   └── index.tsx
 │   ├── index.html
@@ -100,33 +91,7 @@ customer-insights/
    - Web app: http://localhost:5173
    - MySQL: localhost:3306
 
-### Common commands
-
-| Command | Description |
-|---|---|
-| `make up` | Build and start all services |
-| `make down` | Stop all services |
-| `make restart` | Stop and rebuild all services |
-| `make rebuild` | Rebuild without cache and recreate containers |
-| `make logs` | Follow logs for all services |
-| `make shell` | Open a shell in the `php` container |
-| `make composer-install` | Install PHP dependencies |
-| `make phpunit-test` | Run the API test suite |
-| `make format` | Run PHP-CS-Fixer (PSR-12) |
-| `make analyse` | Run PHPStan (level 8) |
-| `make npm-test` | Run the frontend test suite via Docker |
-
-See each app's own commands (single test/file runs, migrations, linting, etc.) in `api-service/` and `web-user/`.
-
-## API Overview
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/csat/{week}` | Weekly CSAT score across all years for that week |
-| `GET` | `/api/csat/{year}/{week}` | CSAT score for a specific week and year |
-| `GET` | `/api/static-pages` | List published static pages |
-| `POST` | `/api/contact` | Submit a contact message |
-| `GET` | `/healthz` | Health check for probes; returns `{"status":"ok"}` without touching the database |
+See each app's own commands (single test/file runs, migrations, linting, etc.) in `api-service/CLAUDE.md` and `web-user/CLAUDE.md`.
 
 ## Testing & CI
 
@@ -136,5 +101,6 @@ See each app's own commands (single test/file runs, migrations, linting, etc.) i
 ## Roadmap Ahead
 
 - [ ] **Orchestration** — Kubernetes for auto-scaling, self-healing, and zero-downtime updates
-  - Local: minimum deployment via [kind](https://kind.sigs.k8s.io/)
-  - Cloud: self-hosted K8s on EC2, or managed via AWS EKS
+  - [x] Local: deployed via [kind](https://kind.sigs.k8s.io/) — Helm chart, HPA, PodDisruptionBudgets, zero-downtime rollouts, CI-published images
+  - [ ] Cloud: self-hosted K8s on EC2 (in progress), or managed via AWS EKS
+- [ ] **Infrastructure as Code** — Terraform for reproducible cloud infrastructure
