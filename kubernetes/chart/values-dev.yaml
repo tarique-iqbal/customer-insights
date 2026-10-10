@@ -1,7 +1,8 @@
 # Local kind cluster: kubernetes/kind-config.yaml maps host ports 80/443 onto
-# ingress-nginx (installed separately, not part of this chart — see
-# notes/k8s-roadmap.md for the install command). Services stay ClusterIP
-# (values.yaml's default); the Ingress below is how they're reached.
+# ingress-nginx (installed separately, not part of this chart):
+#   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+# Services stay ClusterIP (values.yaml's default); the Ingress below is
+# how they're reached.
 mysql:
   # Throwaway dev credentials, the same values compose.yml uses. Production
   # sets mysql.existingSecret instead and keeps the real values out of git.
@@ -10,7 +11,12 @@ mysql:
     rootPassword: secret
 
 # Needs metrics-server installed separately (like ingress-nginx above, not
-# part of this chart — see notes/k8s-roadmap.md for the install command).
+# part of this chart):
+#   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+#   kubectl patch deployment metrics-server -n kube-system --type=json \
+#     -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+# (the --kubelet-insecure-tls patch is kind-specific — its kubelet certs
+# fail the default TLS check; don't carry that flag into a real cluster).
 backend:
   autoscaling:
     enabled: true
