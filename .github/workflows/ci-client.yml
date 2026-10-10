@@ -3,6 +3,12 @@ name: CI (web-user)
 on:
   push:
     branches: [main]
+    paths:
+      - 'web-user/**'
+      - 'docker/web-user/**'
+      - '.github/workflows/ci-client.yml'
+      - '.github/actions/setup-client/**'
+      - '!**.md'
   workflow_dispatch:
 
 permissions:

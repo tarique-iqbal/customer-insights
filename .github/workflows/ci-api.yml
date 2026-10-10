@@ -3,6 +3,13 @@ name: CI (api-service)
 on:
   push:
     branches: [main]
+    paths:
+      - 'api-service/**'
+      - 'docker/php/**'
+      - 'docker/nginx/**'
+      - '.github/workflows/ci-api.yml'
+      - '.github/actions/setup-api/**'
+      - '!**.md'
   workflow_dispatch:
 
 permissions:
