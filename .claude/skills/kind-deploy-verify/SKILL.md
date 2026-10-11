@@ -37,18 +37,18 @@ Why this has to happen before `helm upgrade`, not after or at the same time: if 
 
 ## Step 2: check whether this component is pinned to a published image
 
-Before assuming your rebuilt `:local` image will actually run, check `kubernetes/chart/values-dev.yaml`:
+Before assuming your rebuilt `:local` image will actually run, check `kubernetes/chart/values-local.yaml`:
 
 ```bash
-grep -A2 "^backend:\|^frontend:\|^nginx:" kubernetes/chart/values-dev.yaml
+grep -A2 "^backend:\|^frontend:\|^nginx:" kubernetes/chart/values-local.yaml
 ```
 
 As of this writing, `backend.image` and `frontend.image` are pinned to specific `ghcr.io/.../csat-{php,web-user}:<sha>` tags (from switching the cluster to the real CI-published images) — `nginx.image` isn't overridden there, so it still defaults to `values.yaml`'s `csat-nginx:local`. **Check the current file rather than trusting this**, since pins get added or removed over time.
 
-If the component you rebuilt is pinned: don't edit `values-dev.yaml` to test one change (that's a separate decision about switching the cluster back to local dev images generally, not implied by wanting to verify this one edit). Instead, override it just for this deploy:
+If the component you rebuilt is pinned: don't edit `values-local.yaml` to test one change (that's a separate decision about switching the cluster back to local dev images generally, not implied by wanting to verify this one edit). Instead, override it just for this deploy:
 
 ```bash
-helm upgrade csat kubernetes/chart -n csat -f kubernetes/chart/values-dev.yaml \
+helm upgrade csat kubernetes/chart -n csat -f kubernetes/chart/values-local.yaml \
   --set backend.image.repository=csat-php --set backend.image.tag=local \
   --wait --timeout 3m
 ```
@@ -60,8 +60,8 @@ helm upgrade csat kubernetes/chart -n csat -f kubernetes/chart/values-dev.yaml \
 Always preview before applying — this has caught real mistakes before (a duplicate YAML key that silently clobbered a value, confirming a diff only touched what was intended).
 
 ```bash
-helm lint kubernetes/chart -f kubernetes/chart/values-dev.yaml
-helm template csat kubernetes/chart -n csat -f kubernetes/chart/values-dev.yaml \
+helm lint kubernetes/chart -f kubernetes/chart/values-local.yaml
+helm template csat kubernetes/chart -n csat -f kubernetes/chart/values-local.yaml \
   | kubectl diff -n csat -f -
 ```
 
@@ -70,7 +70,7 @@ The diff will always show a `migrate` Job as if newly created — that's expecte
 Then apply (add any `--set` overrides from Step 2 if needed):
 
 ```bash
-helm upgrade csat kubernetes/chart -n csat -f kubernetes/chart/values-dev.yaml --wait --timeout 3m
+helm upgrade csat kubernetes/chart -n csat -f kubernetes/chart/values-local.yaml --wait --timeout 3m
 ```
 
 ## Step 4: verify for real

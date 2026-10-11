@@ -1,4 +1,4 @@
-# Defaults shared by every environment; values-dev.yaml overrides them for the
+# Defaults shared by every environment; values-local.yaml overrides them for the
 # local kind cluster.
 #
 # Resource names (mysql, php, nginx, web-user) are fixed on purpose: nginx's
@@ -56,7 +56,7 @@ backend:
       memory: 128Mi
     limits:
       memory: 512Mi
-  # Disabled by default; values-dev.yaml turns it on. When enabled, .replicas
+  # Disabled by default; values-local.yaml turns it on. When enabled, .replicas
   # above is ignored by the Deployment template — the HPA owns replica count
   # instead, and leaving both set would fight each other on every
   # `helm upgrade` (Helm resets it, the HPA changes it back).
@@ -119,7 +119,7 @@ frontend:
     maxReplicas: 3
     targetCPUUtilizationPercentage: 70
 
-# Disabled by default; values-dev.yaml turns it on. Production would set its
+# Disabled by default; values-local.yaml turns it on. Production would set its
 # real hostnames and switch className/annotations for the AWS Load Balancer
 # Controller (Phase 4).
 ingress:
