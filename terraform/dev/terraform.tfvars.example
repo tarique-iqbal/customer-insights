@@ -1,0 +1,4 @@
+aws_region           = "ap-southeast-1"
+instance_type        = "t3.medium"                  # not Free-Tier-eligible, see variables.tf
+allowed_admin_cidr   = "YOUR_IP_ADDRESS/32"         # curl -s ifconfig.me, then append /32
+ssh_public_key_path  = "~/.ssh/id_ed25519_lab.pub"  # ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_lab -N ""
