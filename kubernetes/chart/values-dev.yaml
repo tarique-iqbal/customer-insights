@@ -1,0 +1,90 @@
+# Ephemeral k3s-on-EC2 environment (terraform/dev), not kind and not
+# the long-lived self-hosted-EC2 production environment. Apply that
+# Terraform first, then replace every REPLACE_ME_WORKER_IP below with its
+# `worker_public_ip` output before `helm upgrade --install` — or just run
+# terraform/dev/run.sh, which does this (and the rest of the runbook:
+# fetching a kubeconfig, installing ingress-nginx, deploying, verifying,
+# tearing down) automatically.
+
+api:
+  appEnv: dev
+  corsAllowOrigin: http://app.REPLACE_ME_WORKER_IP.nip.io
+
+mysql:
+  # Same in-cluster StatefulSet as local, no RDS. Throwaway credentials, same
+  # spirit as values-local.yaml's — nothing here is meant to outlive a test
+  # session, and 3306 is never exposed outside the cluster (the worker's
+  # Security Group only opens 80/443 externally).
+  credentials:
+    password: dev
+    rootPassword: dev
+  # 256Mi was sized for a free-tier t2.micro's ~1GiB total, but it
+  # OOMKilled MySQL mid-InnoDB-init (exit 137) — 8.0's real startup
+  # footprint needs more than that regardless of node size. That OOMKill
+  # is why terraform/dev/variables.tf's instance_type default moved to
+  # t3.medium, which has the headroom for this (at the cost of no longer
+  # being Free-Tier-eligible). Revisit this memory number from real
+  # metrics once there's live traffic to measure against.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 160Mi
+    limits:
+      memory: 512Mi
+
+backend:
+  # The same published, already-verified prod image values-local.yaml pins
+  # (no xdebug, no dev deps). Manual, static reference — bump by hand after
+  # a push, same caveat as there.
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
+    tag: "7b305bf5371b3319f68cacdfbae3c73a296fe036"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 160Mi
+
+nginx:
+  # Unlike backend/frontend below, this isn't pinned to a SHA that's
+  # actually been verified live yet — ci-api.yml does publish
+  # ghcr.io/.../csat-nginx on every push, but no kind or dev run has
+  # checked a specific tag the way the other two images were. Tighten this
+  # to a verified SHA once a dev deploy actually confirms one.
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
+    tag: latest
+  resources:
+    requests:
+      cpu: 20m
+      memory: 16Mi
+    limits:
+      memory: 32Mi
+
+frontend:
+  # The same published static prod build values-local.yaml pins (nginx-served,
+  # not the Vite dev server) — real env.js runtime config. Bump by hand
+  # after a push, same as backend.image above.
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
+    tag: "0fea83f9581da9318ef6725f92bed7921766fb00"
+  containerPort: 80
+  apiUrl: http://api.REPLACE_ME_WORKER_IP.nip.io
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+# className stays the values.yaml default ("nginx") — ingress-nginx needs
+# installing on this cluster the same way it's installed separately for
+# kind, except it needs a bare-metal-style install (controller.hostNetwork,
+# since there's no AWS Load Balancer Controller or cloud-controller-manager
+# wiring here to ever satisfy a LoadBalancer-type Service) — see
+# terraform/dev/run.sh for the actual install command.
+ingress:
+  enabled: true
+  apiHost: api.REPLACE_ME_WORKER_IP.nip.io
+  appHost: app.REPLACE_ME_WORKER_IP.nip.io
