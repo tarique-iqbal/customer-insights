@@ -1,5 +1,15 @@
 # default.conf's `fastcgi_pass php:9000;` resolves via in-cluster DNS to the
-# php Service — same namespace, no config change needed.
+# php Service — same namespace, no config change needed in the common case.
+# The initContainer below exists for one specific, observed failure: nginx
+# resolves that hostname once, synchronously, at config-load time — not
+# per-request — so a DNS lookup that's merely slow (not actually broken) at
+# that exact instant crash-loops nginx permanently until it's restarted at
+# a luckier moment. Seen for real on a self-hosted k3s/EC2 environment,
+# even after cluster-level DNS was confirmed healthy and stable. Blocking
+# on a successful resolution first removes
+# that race without touching the shared nginx image/config used by
+# Compose and kind too, both unaffected by this since they don't exhibit
+# it.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,6 +32,13 @@ spec:
       labels:
         app: nginx
     spec:
+      initContainers:
+        - name: wait-for-php-dns
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nslookup php.default.svc.cluster.local. 2>&1 | grep -q '^Address:'; do echo "waiting for php to resolve"; sleep 2; done
       containers:
         - name: nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
