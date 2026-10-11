@@ -9,6 +9,15 @@ Thumbs.db
 # Local notes only
 notes/
 
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+!**/*.tfvars.example
+**/crash.log
+**/kubeconfig*.yaml
+
 # api-service (PHP)
 api-service/.env.*
 !api-service/.env.example
