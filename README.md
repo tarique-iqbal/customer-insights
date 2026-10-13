@@ -98,9 +98,19 @@ See each app's own commands (single test/file runs, migrations, linting, etc.) i
 - `api-service`: PHPUnit (`Unit`, `Integration`, `Functional`), PHPStan, PHP-CS-Fixer — see `.github/workflows/ci-api.yml`.
 - `web-user`: Vitest, ESLint — see `.github/workflows/ci-client.yml`.
 
+## Deployments
+
+- **Local**: [kind](https://kind.sigs.k8s.io/) cluster — Helm chart, HPA, PodDisruptionBudgets, zero-downtime rollouts, CI-published images. See:
+  - [kind.md](docs/local/kind.md)
+  - [helm.md](docs/helm.md)
+- **Dev**: two real EC2 instances running self-managed k3s, provisioned by `terraform/dev/` and ephemeral by design (deploy → test → destroy). See:
+  - [aws.md](docs/dev/aws.md)
+  - [terraform.md](docs/dev/terraform.md)
+  - [kubernetes.md](docs/dev/kubernetes.md)
+
 ## Roadmap Ahead
 
 - [ ] **Orchestration** — Kubernetes for auto-scaling, self-healing, and zero-downtime updates
-  - [x] Local: deployed via [kind](https://kind.sigs.k8s.io/) — Helm chart, HPA, PodDisruptionBudgets, zero-downtime rollouts, CI-published images
-  - [ ] Cloud: self-hosted K8s on EC2 (in progress), or managed via AWS EKS
+  - [ ] Staging: AWS EKS, with a self-hosted database (not RDS)
 - [ ] **Infrastructure as Code** — Terraform for reproducible cloud infrastructure
+  - [ ] Staging/production tier: not yet started
