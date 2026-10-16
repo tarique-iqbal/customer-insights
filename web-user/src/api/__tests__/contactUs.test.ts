@@ -59,7 +59,7 @@ describe('sendContactMessage', () => {
     };
 
     const apiError = {
-      response: { data: { message: 'Internal server error' } },
+      response: { data: { error: 'Internal server error' } },
       message: 'Request failed',
     };
 

@@ -17,14 +17,14 @@ export const sendContactMessage = async (
     const err = error as {
       name?: string;
       code?: string;
-      response?: { data?: { message?: string } };
+      response?: { data?: { error?: string } };
       message?: string;
     };
     if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
       throw new DOMException('Request aborted', 'AbortError');
     }
     throw new Error(
-      err.response?.data?.message || `Failed to send message: ${err.message}`
+      err.response?.data?.error || `Failed to send message: ${err.message}`
     );
   }
 };
