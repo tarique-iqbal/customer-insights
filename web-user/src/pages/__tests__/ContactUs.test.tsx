@@ -9,6 +9,11 @@ vi.mock('@/api/contactUs', () => ({
 
 import { sendContactMessage } from '@/api/contactUs';
 
+// Backend requires at least 80 characters (Message.php) — long enough to
+// satisfy that, short enough to read easily in a test failure diff.
+const VALID_MESSAGE =
+  'Hello! I would like to get in touch regarding your services and learn more about what you offer.';
+
 describe('ContactUs Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,9 +33,55 @@ describe('ContactUs Page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /send/i }));
 
-    expect(await screen.findByText(/name is required/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/name must be at least 2 characters long/i)
+    ).toBeInTheDocument();
     expect(await screen.findByText(/invalid email format/i)).toBeInTheDocument();
-    expect(await screen.findByText(/message is required/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/message must be at least 80 characters long/i)
+    ).toBeInTheDocument();
+  });
+
+  it('rejects a name containing digits or special characters', async () => {
+    render(<ContactUs />);
+
+    fireEvent.change(screen.getByLabelText(/name/i), {
+      target: { value: 'John3' },
+    });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'john@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: VALID_MESSAGE },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+    expect(
+      await screen.findByText(/special characters and numbers are not allowed/i)
+    ).toBeInTheDocument();
+    expect(sendContactMessage).not.toHaveBeenCalled();
+  });
+
+  it('rejects a message shorter than 80 characters', async () => {
+    render(<ContactUs />);
+
+    fireEvent.change(screen.getByLabelText(/name/i), {
+      target: { value: 'John Doe' },
+    });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'john@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: 'Too short' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+    expect(
+      await screen.findByText(/message must be at least 80 characters long/i)
+    ).toBeInTheDocument();
+    expect(sendContactMessage).not.toHaveBeenCalled();
   });
 
   it('submits successfully and shows thank-you message', async () => {
@@ -45,7 +96,7 @@ describe('ContactUs Page', () => {
       target: { value: 'john@example.com' },
     });
     fireEvent.change(screen.getByLabelText(/message/i), {
-      target: { value: 'Hello!' },
+      target: { value: VALID_MESSAGE },
     });
 
     fireEvent.click(screen.getByRole('button', { name: /send/i }));
@@ -73,7 +124,7 @@ describe('ContactUs Page', () => {
       target: { value: 'jane@example.com' },
     });
     fireEvent.change(screen.getByLabelText(/message/i), {
-      target: { value: 'Help me!' },
+      target: { value: VALID_MESSAGE },
     });
 
     fireEvent.click(screen.getByRole('button', { name: /send/i }));

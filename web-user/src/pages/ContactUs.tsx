@@ -7,10 +7,26 @@ import MainLayout from '@/layouts/MainLayout';
 import Nav from '@/components/Nav';
 import '@/pages/ContactUs.css';
 
+// Mirrors api-service's Name/Message value objects
+// (src/Domain/Contact/ValueObject/{Name,Message}.php) so invalid input is
+// caught client-side instead of round-tripping to the server first.
+const NAME_FORBIDDEN_CHARS = /[0-9^<,@/{}()[\]!&`~*$%?=>:|;#"]/;
+
 const contactSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Name must be at least 2 characters long')
+    .max(100, 'Name must not exceed 100 characters')
+    .refine((value) => !NAME_FORBIDDEN_CHARS.test(value), {
+      message: 'Special characters and numbers are not allowed in the name',
+    }),
   email: z.string().email('Invalid email format'),
-  message: z.string().min(1, 'Message is required'),
+  message: z
+    .string()
+    .trim()
+    .min(80, 'Message must be at least 80 characters long')
+    .max(2000, 'Message must not exceed 2000 characters'),
 });
 
 const ContactUs: React.FC = () => {
