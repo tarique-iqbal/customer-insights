@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Exception;
 
-use App\Domain\Contact\Exception\ContactMessageException;
+use App\Domain\Common\Exception\DomainException;
 use App\Infrastructure\Http\JsonResponse;
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use Psr\Log\LoggerInterface;
@@ -57,8 +57,12 @@ final readonly class ExceptionHandler
             return new JsonResponse(['error' => 'Method not allowed'], 405, $this->corsHeaders);
         }
 
-        if ($exception instanceof ContactMessageException) {
-            return new JsonResponse(['error' => $exception->getMessage()], 422, $this->corsHeaders);
+        if ($exception instanceof DomainException) {
+            return new JsonResponse(
+                ['error' => $exception->getMessage()],
+                $exception->statusCode(),
+                $this->corsHeaders
+            );
         }
 
         return new JsonResponse(['error' => 'Unexpected error occurred'], 500, $this->corsHeaders);

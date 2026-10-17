@@ -6,6 +6,7 @@ namespace Tests\Unit\Infrastructure\Exception;
 
 use PHPUnit\Framework\TestCase;
 use App\Domain\Contact\Exception\ContactMessageException;
+use App\Domain\Content\Exception\ContentException;
 use App\Infrastructure\Exception\ExceptionHandler;
 use League\Route\Http\Exception\MethodNotAllowedException;
 use League\Route\Http\Exception\NotFoundException;
@@ -62,6 +63,8 @@ final class ExceptionHandlerTest extends TestCase
             'not found' => [new NotFoundException(), 404],
             'method not allowed' => [new MethodNotAllowedException(['GET']), 405],
             'contact message' => [new ContactMessageException('Invalid email'), 422],
+            'content exception, default status' => [new ContentException('Slug already exists'), 422],
+            'content exception, explicit status' => [new ContentException('Static page not found', 404), 404],
             'unexpected' => [new RuntimeException('boom'), 500],
         ];
     }
