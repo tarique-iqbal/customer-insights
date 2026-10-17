@@ -33,6 +33,18 @@ describe('getCsatByWeek', () => {
     await expect(getCsatByWeek(mockWeek)).rejects.toThrow('Failed to fetch CSAT: Server Error');
   });
 
+  it('should throw backend error message when API responds with one', async () => {
+    const apiError = {
+      response: { data: { error: 'Week number must be between 1 and 53.' } },
+      message: 'Request failed with status code 400',
+    };
+    (http.get as vi.Mock).mockRejectedValueOnce(apiError);
+
+    await expect(getCsatByWeek(mockWeek)).rejects.toThrow(
+      'Week number must be between 1 and 53.'
+    );
+  });
+
   it('should throw AbortError when request is canceled', async () => {
     const controller = new AbortController();
 

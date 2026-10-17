@@ -14,7 +14,9 @@ const fetchCsat = (path: string, signal?: AbortSignal): Promise<CsatEntry> =>
       if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
         throw new DOMException('Request aborted', 'AbortError');
       }
-      throw new Error(`Failed to fetch CSAT: ${error.message}`);
+      throw new Error(
+        error.response?.data?.error || `Failed to fetch CSAT: ${error.message}`
+      );
     });
 
 export const getCsatByWeek = (
