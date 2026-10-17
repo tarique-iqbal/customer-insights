@@ -38,7 +38,7 @@ backend:
   # a push, same caveat as there.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "7b305bf5371b3319f68cacdfbae3c73a296fe036"
+    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
   resources:
     requests:
       cpu: 50m
@@ -68,7 +68,7 @@ frontend:
   # after a push, same as backend.image above.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
-    tag: "d31366d59799cacb40cabf68c32dfcf635553dd7"
+    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
   containerPort: 80
   apiUrl: http://api.REPLACE_ME_WORKER_IP.nip.io
   resources:
