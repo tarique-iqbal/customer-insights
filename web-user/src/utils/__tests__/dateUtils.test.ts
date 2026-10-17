@@ -23,4 +23,27 @@ describe('getCurrentWeek', () => {
 
     global.Date = RealDate;
   });
+
+  it('should not jump backward across a Saturday-to-Sunday boundary', () => {
+    const RealDate = Date;
+    const mockNow = (iso: string) => {
+      global.Date = class extends RealDate {
+        constructor() {
+          super();
+          return new RealDate(iso);
+        }
+      } as unknown as DateConstructor;
+    };
+
+    // 2026-01-03 is a Saturday, 2026-01-04 is the following Sunday.
+    mockNow('2026-01-03T00:00:00.000Z');
+    const saturdayWeek = getCurrentWeek();
+
+    mockNow('2026-01-04T00:00:00.000Z');
+    const sundayWeek = getCurrentWeek();
+
+    global.Date = RealDate;
+
+    expect(sundayWeek).toBeGreaterThanOrEqual(saturdayWeek);
+  });
 });
