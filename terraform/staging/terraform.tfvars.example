@@ -1,0 +1,3 @@
+aws_region         = "ap-southeast-1"
+name               = "csat-staging"
+allowed_admin_cidr = "YOUR_IP_ADDRESS/32" # curl -s ifconfig.me, then append /32
