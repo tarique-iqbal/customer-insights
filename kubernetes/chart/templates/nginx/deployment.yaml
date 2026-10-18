@@ -38,7 +38,7 @@ spec:
           command:
             - sh
             - -c
-            - until nslookup php.default.svc.cluster.local. 2>&1 | grep -q '^Address:'; do echo "waiting for php to resolve"; sleep 2; done
+            - until nslookup php.{{ .Release.Namespace }}.svc.cluster.local. >/dev/null 2>&1; do echo "waiting for php to resolve"; sleep 2; done
       containers:
         - name: nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
