@@ -30,6 +30,11 @@ backend:
 nginx:
   autoscaling:
     enabled: true
+  # The CI-published image, same manual-pin convention as backend/frontend
+  # above (bump by hand after a push). Verified live in kind on 2026-10-18.
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
+    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
 
 # *.localtest.me resolves to 127.0.0.1 by design (a public DNS wildcard), so
 # these work with no /etc/hosts edit.

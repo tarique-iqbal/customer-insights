@@ -47,14 +47,12 @@ backend:
       memory: 160Mi
 
 nginx:
-  # Unlike backend/frontend below, this isn't pinned to a SHA that's
-  # actually been verified live yet — ci-api.yml does publish
-  # ghcr.io/.../csat-nginx on every push, but no kind or dev run has
-  # checked a specific tag the way the other two images were. Tighten this
-  # to a verified SHA once a dev deploy actually confirms one.
+  # Same published image as backend/frontend below, same manual-pin
+  # convention — bump by hand after a push. Verified live in kind on
+  # 2026-10-18 (not yet re-verified against a real dev EC2 run).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
-    tag: latest
+    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
   resources:
     requests:
       cpu: 20m
