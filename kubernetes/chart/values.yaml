@@ -127,3 +127,7 @@ ingress:
   className: nginx
   apiHost: ""
   appHost: ""
+  # values-staging.yaml sets the AWS Load Balancer Controller's
+  # scheme/target-type annotations here instead of a new values key per
+  # annotation — ingress-nginx needs none of these.
+  annotations: {}
