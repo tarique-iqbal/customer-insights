@@ -1,0 +1,81 @@
+# EKS, via terraform/staging — Option B (private node subnets + NAT
+# Gateway, see notes/aws-qna.md). Unlike values-dev.yaml, the hostnames
+# below don't need a nip.io/sed-substitution trick: the AWS Load Balancer
+# Controller provisions a real ALB with its own stable DNS name after this
+# chart's Ingress is applied, and curl can hit that ALB directly with a
+# `-H "Host: ..."` override (see terraform/staging/run.sh) — these hostnames
+# never need to resolve on their own for that to work. Pointing real DNS
+# (e.g. Route53) at the ALB so a browser can use them for real is a later
+# step, not done here.
+api:
+  appEnv: staging
+  corsAllowOrigin: http://app.csat-staging.internal
+
+mysql:
+  # Same in-cluster StatefulSet as dev/local, no RDS — see notes/aws-qna.md's
+  # staging-roadmap Q&A for why. Throwaway credentials, same spirit as
+  # values-dev.yaml's.
+  credentials:
+    password: staging
+    rootPassword: staging
+  # Same sizing as values-dev.yaml, same t3.medium-class node — see that
+  # file's own comment for the OOMKill history behind these numbers.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 160Mi
+    limits:
+      memory: 512Mi
+
+backend:
+  # The same published, already-verified prod image values-local.yaml and
+  # values-dev.yaml pin. Manual, static reference — bump by hand after a
+  # push, same caveat as there.
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
+    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 160Mi
+
+nginx:
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
+    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+  resources:
+    requests:
+      cpu: 20m
+      memory: 16Mi
+    limits:
+      memory: 32Mi
+
+frontend:
+  image:
+    repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
+    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+  containerPort: 80
+  apiUrl: http://api.csat-staging.internal
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+# className "alb" needs the AWS Load Balancer Controller installed first
+# (terraform/staging/run.sh does this, using the IRSA role Terraform
+# output). target-type "ip" routes directly to pod IPs (EKS's VPC CNI gives
+# every pod a real VPC IP, so this works) instead of via each node's
+# NodePort — fewer hops, and correct even though the nodes themselves sit
+# in private subnets with no public exposure of their own.
+ingress:
+  enabled: true
+  className: alb
+  apiHost: api.csat-staging.internal
+  appHost: app.csat-staging.internal
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
