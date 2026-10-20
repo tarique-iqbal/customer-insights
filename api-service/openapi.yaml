@@ -1,0 +1,194 @@
+openapi: 3.0.3
+info:
+  title: Customer Satisfaction Score (CSAT) API
+  description: >
+    CSAT is computed as (Satisfied Customers / Total Responses) x 100, using
+    a 1-5 scale (Satisfied = 4-5, Neutral = 3, Dissatisfied = 1-2).
+  version: "1.0"
+servers:
+  - url: http://localhost:8080
+    description: Local (Docker Compose / kind), via nginx
+# No endpoint requires auth today — declared explicitly so lint rules (and
+# future readers) don't treat this as an oversight.
+security: []
+
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      operationId: getHealth
+      tags: [Health]
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                required: [status]
+
+  /api/static-pages:
+    get:
+      summary: List static pages
+      operationId: listStaticPages
+      tags: [Content]
+      responses:
+        "200":
+          description: All static pages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StaticPage"
+
+  /api/csat/{week}:
+    get:
+      summary: Calculate the CSAT score for a week in the current year
+      operationId: calculateCsatScoreByWeek
+      tags: [Csat]
+      parameters:
+        - $ref: "#/components/parameters/Week"
+      responses:
+        "200":
+          description: Computed CSAT score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsatScore"
+        "400":
+          description: Invalid week
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/csat/{year}/{week}:
+    get:
+      summary: Calculate the CSAT score for a week in a specific year
+      operationId: calculateCsatScoreByYearAndWeek
+      tags: [Csat]
+      parameters:
+        - $ref: "#/components/parameters/Year"
+        - $ref: "#/components/parameters/Week"
+      responses:
+        "200":
+          description: Computed CSAT score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsatScore"
+        "400":
+          description: Invalid week/year combination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/contact:
+    post:
+      summary: Submit a contact message
+      operationId: submitContactMessage
+      tags: [Contact]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitContactRequest"
+      responses:
+        "201":
+          description: Message accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 42
+                required: [id]
+        "400":
+          description: name, email, or message was missing or not a string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: name, email, or message failed domain validation (e.g. malformed email)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  parameters:
+    Week:
+      name: week
+      in: path
+      required: true
+      description: ISO week number (1-53)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 53
+    Year:
+      name: year
+      in: path
+      required: true
+      description: Four-digit year
+      schema:
+        type: integer
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    StaticPage:
+      type: object
+      properties:
+        slug:
+          type: string
+          example: about-us
+        title:
+          type: string
+        content:
+          type: string
+      required: [slug, title, content]
+
+    CsatScore:
+      type: object
+      properties:
+        week:
+          type: integer
+          minimum: 1
+          maximum: 53
+        year:
+          type: integer
+          nullable: true
+          description: Null when the request didn't specify a year (defaults to the current year's calculation).
+        score:
+          type: number
+          format: float
+          example: 87.5
+      required: [week, year, score]
+
+    SubmitContactRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        message:
+          type: string
+      required: [name, email, message]
