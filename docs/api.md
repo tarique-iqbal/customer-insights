@@ -116,3 +116,31 @@ Stored email addresses are lowercased; everything else is stored as submitted (t
 - `400`s are handled *inside* the controller (catching `InvalidArgumentException` from the `WeekOfYear`/`Year` value objects, or checking JSON types directly) — they never reach `ExceptionHandler`. Only `404`/`405`/`422`/`500` go through it.
 - `ExceptionHandler::buildResponse()` hardcodes `422` for every `ContactMessageException`, regardless of the exception's own `statusCode()` method (which defaults to `422` anyway — nothing in the codebase currently constructs one with a different code).
 - There's no API versioning (no `/v1/` prefix or `Accept` header negotiation) — all four routes above are the entire public surface.
+
+## OpenAPI contract
+
+`api-service/openapi.yaml` is the machine-readable version of this same API — hand-written (design-first), not generated from `src/`, so it's a separate file to keep in sync when a route/request/response shape changes rather than something that updates itself.
+
+Lint it:
+```bash
+npx --yes @redocly/cli lint api-service/openapi.yaml
+```
+
+Render it locally (run from the repo root, then open `http://localhost:8081`):
+```bash
+# Swagger UI
+docker run --rm -p 8081:8080 \
+  -v "$(pwd)/api-service/openapi.yaml:/openapi.yaml" \
+  -e SWAGGER_JSON=/openapi.yaml \
+  swaggerapi/swagger-ui
+
+# Redoc (alternative rendering)
+docker run --rm -p 8081:80 \
+  -v "$(pwd)/api-service/openapi.yaml:/usr/share/nginx/html/openapi.yaml" \
+  -e SPEC_URL=openapi.yaml \
+  redocly/redoc
+```
+`--rm` already removes the container on exit; to also drop the pulled image:
+```bash
+docker rmi swaggerapi/swagger-ui   # or redocly/redoc
+```
