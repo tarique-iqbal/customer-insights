@@ -31,9 +31,13 @@ backend:
   # The same published, already-verified prod image values-local.yaml and
   # values-dev.yaml pin. Manual, static reference — bump by hand after a
   # push, same caveat as there.
+  # Bumped 2026-10-25 for the PHP2Shell fix (CVE-2026-109618/109619, see
+  # notes/issues.md) — the old pin's image was still built on vulnerable
+  # PHP 8.2.34; this one is 8.2.35. Unverified here (terraform/staging/ has
+  # never been applied).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
   resources:
     requests:
       cpu: 50m
@@ -42,9 +46,11 @@ backend:
       memory: 160Mi
 
 nginx:
+  # Bumped 2026-10-25 alongside backend.image above for the PHP2Shell fix
+  # (same publish job, same commit, kept in step).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
-    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
   resources:
     requests:
       cpu: 20m

@@ -23,18 +23,23 @@ backend:
   # The CI-published prod image (verified: no xdebug, no dev deps), pinned to
   # the exact commit whose Actions run was checked. This is a manual, static
   # reference — it does not update itself, so bump it by hand after a push.
+  # Bumped 2026-10-25 for the PHP2Shell fix (CVE-2026-109618/109619, see
+  # notes/issues.md) — the old pin's image was still built on vulnerable
+  # PHP 8.2.34; this one is 8.2.35.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
 
 nginx:
   autoscaling:
     enabled: true
   # The CI-published image, same manual-pin convention as backend/frontend
-  # above (bump by hand after a push). Verified live in kind on 2026-10-18.
+  # above (bump by hand after a push). Verified live in kind on 2026-10-18;
+  # bumped again 2026-10-25 alongside backend.image for the PHP2Shell fix
+  # (same publish job, same commit, kept in step).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
-    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
 
 # *.localtest.me resolves to 127.0.0.1 by design (a public DNS wildcard), so
 # these work with no /etc/hosts edit.
