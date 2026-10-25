@@ -133,6 +133,7 @@ echo "==> deploying the chart"
 sed "s/REPLACE_ME_WORKER_IP/$WORKER_IP/g" "$ROOT/kubernetes/chart/values-dev.yaml" \
   > /tmp/csat-values-dev.rendered.yaml
 helm upgrade --install csat "$ROOT/kubernetes/chart" \
+  --namespace csat --create-namespace \
   -f /tmp/csat-values-dev.rendered.yaml \
   --wait --timeout 8m
 
