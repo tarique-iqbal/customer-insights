@@ -23,14 +23,17 @@ This repo has two independent apps that talk to each other purely over HTTP — 
 
 | Area | Stack |
 |---|---|
-| Backend (`api-service/`) | PHP 8.2, Composer |
+| Backend (`api-service/`) | PHP 8.2.35+ (floating `8.2` Docker tag), Composer |
 | | `league/route` (routing), `php-di` (DI container), `doctrine/dbal` + `doctrine/migrations` (persistence, no ORM), `monolog` (logging) |
 | | MySQL 8.0 |
 | | PHPUnit, PHPStan (level 8), PHP-CS-Fixer |
 | Frontend (`web-user/`) | React 19, TypeScript, Vite |
 | | `react-hook-form` + `zod`, `@tanstack/react-query` |
 | | Vitest + Testing Library, ESLint |
-| Infrastructure | Docker Compose (`php`, `nginx`, `mysql`, `web-user` services) |
+| DevOps / Infrastructure | Docker Compose (`php`, `nginx`, `mysql`, `web-user` services) — local app dev |
+| | Kubernetes (Helm chart, `kubernetes/chart/`) — HPA, PodDisruptionBudgets, zero-downtime rollouts; local via [kind](https://kind.sigs.k8s.io/) |
+| | Terraform — Dev: `terraform/dev/`, self-managed k3s on EC2 (ephemeral); Staging: `terraform/staging/`, AWS EKS (scaffolded, not yet applied) |
+| | GitHub Actions CI, images published to GHCR |
 
 ## Project Structure
 
@@ -41,6 +44,7 @@ customer-insights/
 │   ├── config/                # App configuration files
 │   ├── data/                  # Sample CSAT CSV files
 │   ├── migrations/            # Database migration scripts
+│   ├── openapi.yaml           # Design-first OpenAPI contract
 │   ├── public/                # Entry point
 │   │   └── index.php          # Starts HTTP API
 │   ├── src/
@@ -57,7 +61,7 @@ customer-insights/
 │   ├── public/
 │   │   └── assets/
 │   ├── src/
-│   │   ├── api/               # each has its own __tests__
+│   │   ├── api/               # each has its own __tests__/ directory
 │   │   ├── components/
 │   │   ├── layouts/
 │   │   ├── pages/
@@ -70,7 +74,14 @@ customer-insights/
 │   ├── tsconfig.json
 │   └── vite.config.ts
 ├── docker/                    # Dockerfiles (php, nginx, web-user)
+├── kubernetes/
+│   └── chart/                 # Helm chart — Deployments, HPA, PDBs, Ingress
+├── terraform/
+│   ├── dev/                   # k3s on EC2 (ephemeral: deploy → test → destroy)
+│   └── staging/               # AWS EKS (scaffolded, not yet applied)
+├── docs/                      # Reference docs — API, Helm, deployments
 ├── compose.yml
+├── Makefile
 ├── .gitignore
 └── README.md
 ```
@@ -111,6 +122,6 @@ See each app's own commands (single test/file runs, migrations, linting, etc.) i
 ## Roadmap Ahead
 
 - [ ] **Orchestration** — Kubernetes for auto-scaling, self-healing, and zero-downtime updates
-  - [ ] Staging: AWS EKS, with a self-hosted database (not RDS)
+  - [ ] Production: managed EKS, Amazon RDS for MySQL, Cluster Autoscaler/Karpenter, `cert-manager`/ACM for TLS — not yet started
 - [ ] **Infrastructure as Code** — Terraform for reproducible cloud infrastructure
-  - [ ] Staging/production tier: not yet started
+  - [ ] Production: not yet started
