@@ -46,6 +46,12 @@ The `migrate` Job (`templates/backend/migrate-job.yaml`) is a `post-install,post
 
 The Job's own `hook-delete-policy: before-hook-creation,hook-succeeded` (`migrate-job.yaml:13`) is why a successful run never shows up in `kubectl get jobs` between deploys either — it deletes itself on success, and only a *failed* run is left behind (deliberately) for `kubectl logs`.
 
+## NetworkPolicy: actually enforced here, unlike kind
+
+The chart's per-workload `NetworkPolicy` objects (`templates/{backend,nginx,frontend,mysql}/networkpolicy.yaml` — full rules and reasoning in `docs/helm.md`) render and apply on every tier, but only do anything on this one. k3s ships a kube-router-based Network Policy controller enabled by default, alongside Flannel — Flannel itself only handles routing, kube-router is what actually reads these objects and enforces them via iptables. kind's default CNI (kindnet, a Flannel fork) has no such controller, so the identical objects are accepted there but inert.
+
+Practically, this means a connectivity problem on this tier that would be impossible in kind — a Pod that should reach another one timing out even though nodes, DNS, and the network path (per the Networking section above) are all otherwise healthy — can now also be a `NetworkPolicy` blocking it, not just the CIDR/Security-Group issues this doc already covers. See `docs/dev/debugging.md`'s NetworkPolicy case for how to tell the two apart.
+
 ## PodDisruptionBudgets: `maxUnavailable`, not `minAvailable`
 
 Each workload's PDB uses `maxUnavailable: 1` rather than `minAvailable: 1` (e.g. `templates/backend/pdb.yaml`). These Deployments idle at 1 replica (the HPA's `minReplicas`) — `minAvailable: 1` would block every voluntary disruption (a node drain, for instance) forever at that resting state, since going to 0 replicas even momentarily would violate it. `maxUnavailable: 1` is a no-op at 1 replica (nothing better is achievable there anyway) but genuinely protects once the HPA has scaled out under load, which is the condition it's actually meant for.
