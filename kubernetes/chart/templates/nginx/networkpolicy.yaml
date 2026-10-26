@@ -1,0 +1,35 @@
+# nginx is the public entry point on every tier — reached via ingress-nginx
+# in kind/dev, or directly from the ALB's target-type=ip in staging (see
+# docs/dev/aws.md and values-staging.yaml) — so this policy deliberately
+# leaves Ingress unrestricted: a namespaceSelector scoped to "ingress-nginx"
+# would silently break staging, which has no such controller Pod at all to
+# match. Only egress is locked down — nginx's one legitimate outbound call
+# is to php, plus DNS to resolve that hostname (see its wait-for-php-dns
+# initContainer).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nginx
+spec:
+  podSelector:
+    matchLabels:
+      app: nginx
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: php
+      ports:
+        - protocol: TCP
+          port: 9000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

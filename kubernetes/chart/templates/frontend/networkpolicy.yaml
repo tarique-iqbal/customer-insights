@@ -1,0 +1,17 @@
+# web-user serves a static build (or the Vite dev server) and makes no
+# server-side calls of its own — the browser calls the API directly via
+# nginx's Ingress host, not through this Pod. Same ingress reasoning as
+# nginx/networkpolicy.yaml: left unrestricted, since this is also a public
+# entry point on every tier. Egress is denied outright, not just scoped to
+# DNS, since nothing here needs to resolve a hostname either.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-user
+spec:
+  podSelector:
+    matchLabels:
+      app: web-user
+  policyTypes:
+    - Egress
+  egress: []

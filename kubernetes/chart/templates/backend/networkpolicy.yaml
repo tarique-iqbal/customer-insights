@@ -1,0 +1,43 @@
+# php is only ever called by nginx (fastcgi_pass php:9000) — never directly
+# from outside the cluster, and never by web-user (the browser talks to the
+# API through nginx, not server-to-server). Its only legitimate outbound
+# call is to mysql, plus DNS to resolve that hostname.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: php
+spec:
+  podSelector:
+    matchLabels:
+      app: php
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: nginx
+      ports:
+        - protocol: TCP
+          port: 9000
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    # CoreDNS lives in kube-system, a different namespace — every namespace
+    # gets this kubernetes.io/metadata.name label automatically (since
+    # Kubernetes v1.21), so this doesn't depend on anyone hand-labeling it.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

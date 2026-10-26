@@ -1,0 +1,29 @@
+# mysql is the one workload with no legitimate caller outside this chart's
+# own backend/migrate Job, and no legitimate reason to initiate a connection
+# of its own either — so this is a tight allow-list on both directions, not
+# just ingress. See docs/helm.md's NetworkPolicy section for why this is
+# only actually enforced on some tiers (depends on the CNI's NetworkPolicy
+# support, not on anything in this chart).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mysql
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: php
+        - podSelector:
+            matchLabels:
+              app: migrate
+      ports:
+        - protocol: TCP
+          port: 3306
+  egress: [] # mysql never initiates a connection of its own; deny all of it.

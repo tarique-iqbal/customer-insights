@@ -14,6 +14,12 @@ metadata:
 spec:
   backoffLimit: 3
   template:
+    metadata:
+      # mysql's NetworkPolicy allows ingress from "app: migrate" alongside
+      # "app: php" — without this label this Job would be silently blocked
+      # from ever reaching mysql once that policy is enforced.
+      labels:
+        app: migrate
     spec:
       restartPolicy: Never
       initContainers:
