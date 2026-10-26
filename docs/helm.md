@@ -77,3 +77,26 @@ helm template csat kubernetes/chart -n csat -f kubernetes/chart/values-local.yam
 ## Ingress: one template, per-tier className/annotations
 
 `templates/ingress.yaml` is shared across every tier; only `ingress.enabled`, `ingress.className`, and the two hostnames vary per values file (`values.yaml:122-129` disables it and defaults `className: nginx`; `values-dev.yaml` enables it with nip.io hostnames). The template's own comment (`ingress.yaml:5`) already flags what a managed-Kubernetes tier would need instead: real hostnames and an ALB-specific `className`/annotations rather than ingress-nginx — see `notes/aws-qna.md`'s EKS-vs-EC2 comparison for why that's more than a values change (the template currently has no annotations block to carry AWS Load Balancer Controller's required `alb.ingress.kubernetes.io/*` keys).
+
+## NetworkPolicy: zero-trust between workloads, where it's actually enforced
+
+Each workload gets its own `NetworkPolicy` (`backend/`, `nginx/`, `frontend/`, `mysql/`), rather than one shared policy, so each one reads as a standalone answer to "who can this talk to, in each direction" — matching the chart's existing per-workload folder layout. Once a Pod is selected by *any* `NetworkPolicy` for a given direction (ingress or egress), Kubernetes makes that direction default-deny for that Pod — only what's explicitly listed is allowed, everything else silently drops. That's why there's no separate catch-all "deny everything" policy: each workload's own policy already is the deny-by-default boundary for exactly the traffic it covers.
+
+The rules, and the reasoning behind each:
+
+- **`mysql`**: ingress only from `app: php` and `app: migrate` (the migrate Job's Pod — see below) on `3306`; egress denied entirely. mysql never initiates a connection of its own, so there's nothing legitimate to allow outbound, and denying it anyway is a deliberate defense-in-depth move — if the container were ever compromised, it can't be used to reach anything else.
+- **`php`**: ingress only from `app: nginx` on `9000` (nginx's `fastcgi_pass php:9000` is the only real caller); egress only to `app: mysql` on `3306`, plus DNS (UDP/TCP `53`) to `kube-system` so it can resolve the `mysql` hostname in the first place.
+- **`nginx`**: egress only to `app: php` on `9000`, plus the same DNS allowance (it resolves `php` once at config-load — see `docs/dev/kubernetes.md`'s DNS-wait case). **Ingress is deliberately left unrestricted** — nginx is the public entry point on every tier, but *how* traffic arrives differs per tier (through an `ingress-nginx` controller Pod in kind/dev, or directly from an ALB's `target-type: ip` in staging, which has no controller Pod in-cluster at all to scope a `namespaceSelector` to). Picking one tier's shape would silently break another, so this policy only locks down the side that's actually the same everywhere: egress.
+- **`web-user`**: egress denied entirely, same reasoning as nginx's ingress choice applied to the opposite side — it serves a static build (or the Vite dev server) with no server-side calls of its own, so there's nothing to allow. Ingress is unrestricted for the same cross-tier reason as nginx.
+
+The DNS-egress rules target `kube-system` via `namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}` rather than a hand-maintained label — every namespace has gotten that label automatically since Kubernetes v1.21, specifically so policies like this don't depend on anyone remembering to label `kube-system` by hand.
+
+**This is only as strong as the cluster's CNI.** A `NetworkPolicy` object is inert — accepted by the API server, visible in `kubectl get networkpolicy`, enforcing nothing — unless something actually implements it:
+
+| Tier | CNI | Enforces `NetworkPolicy`? |
+|---|---|---|
+| kind | kindnet (a flannel fork) | No, by default — would need Calico or similar installed separately |
+| dev (`terraform/dev`) | Flannel + k3s's bundled kube-router-based policy controller | **Yes**, on by default |
+| staging (future EKS) | Amazon VPC CNI | No, unless `ENABLE_NETWORK_POLICY=true` is set on the `aws-node` DaemonSet (or Calico is installed instead) — not yet done in `terraform/staging` |
+
+So right now, these policies are genuinely live only on the dev tier — on kind and staging they're correctly rendered and applied, but not yet backed by anything that reads them. That's still worth having: the policies document and are ready to enforce intent regardless, and nothing above needs to change when either gap closes — only the cluster's CNI configuration does.
