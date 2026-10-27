@@ -76,7 +76,9 @@ helm template csat kubernetes/chart -n csat -f kubernetes/chart/values-local.yam
 
 ## Ingress: one template, per-tier className/annotations
 
-`templates/ingress.yaml` is shared across every tier; only `ingress.enabled`, `ingress.className`, and the two hostnames vary per values file (`values.yaml:122-129` disables it and defaults `className: nginx`; `values-dev.yaml` enables it with nip.io hostnames). The template's own comment (`ingress.yaml:5`) already flags what a managed-Kubernetes tier would need instead: real hostnames and an ALB-specific `className`/annotations rather than ingress-nginx — see `notes/aws-qna.md`'s EKS-vs-EC2 comparison for why that's more than a values change (the template currently has no annotations block to carry AWS Load Balancer Controller's required `alb.ingress.kubernetes.io/*` keys).
+`templates/ingress.yaml` is shared across every tier; only `ingress.enabled`, `ingress.className`, the two hostnames, and an optional `ingress.annotations` map vary per values file (`values.yaml:122-129` disables it and defaults `className: nginx` with no annotations; `values-dev.yaml` enables it with nip.io hostnames; `values-staging.yaml` sets `className: alb` plus the AWS Load Balancer Controller's required `alb.ingress.kubernetes.io/{scheme,target-type}` keys via that annotations map).
+
+This wasn't a pure values-file change when staging was first scaffolded — the template itself had no slot for annotations at all, since ingress-nginx (kind/dev) never needed one. The `{{- with .Values.ingress.annotations }}` block (`ingress.yaml:11-14`) was added specifically to carry the ALB Controller's keys, gated so it renders nothing when the map is empty — confirmed `local`/`dev` render unchanged (no `annotations:` key appears at all) before this was relied on for staging.
 
 ## NetworkPolicy: zero-trust between workloads, where it's actually enforced
 
