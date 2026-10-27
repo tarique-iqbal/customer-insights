@@ -34,7 +34,9 @@ The pod-CIDR rule is the direct consequence of a real incident: flannel was swit
 
 **`source_dest_check = false`** on both instances (`main.tf:284`, `310`) is the other half of the same host-gw requirement: AWS drops any packet whose source/destination doesn't match the ENI's own IP by default, which is exactly what host-gw needs each node to do (forward packets addressed to the *other* node's pod subnet). Without this, host-gw would make cross-node connectivity worse, not better.
 
-`allowed_admin_cidr` defaults to `0.0.0.0/0` (`variables.tf:13-17`) but is meant to be narrowed to your own `/32` in `terraform.tfvars` (gitignored, local-only) — see `notes/aws-qna.md` for the full mechanics of how that CIDR is enforced and its "stale IP" gotcha.
+`allowed_admin_cidr` defaults to `0.0.0.0/0` (`variables.tf:13-17`) but is meant to be narrowed to your own `/32` in `terraform.tfvars` (gitignored, local-only). It flows straight into the `cidr_blocks` of two ingress rules on `aws_security_group.control_plane` — TCP 6443 (the k3s API, for `kubectl`/`helm`) and TCP 22 (SSH, for the kubeconfig fetch and `run.sh`) — so narrowing it to `"<your-ip>/32"` means only that exact source IP can reach either port, instead of the whole internet.
+
+**The "stale IP" gotcha**: this is a static value, not auto-detected. If your ISP assigns a new public IP (common on home broadband, or switching networks/VPNs), this CIDR goes stale — you'd get a silent connection timeout on 22/6443 at the Security Group layer, not an AWS error. Fix: check your current IP (`curl -s ifconfig.me`), update `terraform.tfvars`, and `terraform apply` again to push the new rule.
 
 ## Instances
 
