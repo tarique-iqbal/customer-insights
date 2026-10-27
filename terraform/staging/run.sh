@@ -66,7 +66,7 @@ cleanup() {
   # leaves an orphaned ALB that still bills, and can also make the VPC
   # delete fail with "has dependent objects".
   if [ -n "$CLUSTER_CONTEXT" ]; then
-    helm uninstall csat --kube-context "$CLUSTER_CONTEXT" >/dev/null 2>&1 || true
+    helm uninstall csat --namespace csat --kube-context "$CLUSTER_CONTEXT" >/dev/null 2>&1 || true
   fi
   terraform destroy -auto-approve
 }
@@ -131,13 +131,14 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
 
 echo "==> deploying the chart"
 helm upgrade --install csat "$ROOT/kubernetes/chart" \
+  --namespace csat --create-namespace \
   -f "$ROOT/kubernetes/chart/values-staging.yaml" \
   --wait --timeout 8m
 
 echo "==> waiting for the ALB Ingress to get a real hostname"
 ALB_HOST=""
 for _ in $(seq 1 30); do
-  ALB_HOST=$(kubectl get ingress csat -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+  ALB_HOST=$(kubectl get ingress csat -n csat -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
   [ -n "$ALB_HOST" ] && break
   sleep 10
 done
