@@ -183,7 +183,11 @@ resource "aws_iam_openid_connect_provider" "eks" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
 
-  tags = merge(local.common_tags, { Name = "${var.name}-eks-oidc" })
+  # Tagging this resource type needs iam:TagOpenIDConnectProvider; the current
+  # IAM identity doesn't have it, and the create call fails outright (not just
+  # a follow-up warning) if tags are set. Decision: no tags on this one
+  # resource so creation succeeds without needing that permission.
+  # tags = merge(local.common_tags, { Name = "${var.name}-eks-oidc" })
 }
 
 # --- Node group -----------------------------------------------------------
@@ -306,7 +310,11 @@ resource "aws_iam_policy" "alb_controller" {
   # next controller version before upgrading it.
   policy = file("${path.module}/iam/alb-controller-policy.json")
 
-  tags = local.common_tags
+  # Tagging this resource type needs iam:TagPolicy; the current IAM identity
+  # doesn't have it, and the create call fails outright if tags are set.
+  # Decision: no tags on this one resource so creation succeeds without
+  # needing that permission.
+  # tags = local.common_tags
 }
 
 resource "aws_iam_role" "alb_controller" {
