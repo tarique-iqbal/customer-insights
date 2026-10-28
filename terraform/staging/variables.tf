@@ -17,9 +17,9 @@ variable "vpc_cidr" {
 }
 
 variable "kubernetes_version" {
-  description = "EKS control-plane version. Check `aws eks describe-addon-versions` or the AWS console for the currently supported range before relying on this default — EKS deprecates old versions on its own schedule."
+  description = "EKS control-plane version. Standard support versions as of 2026-10-27: 1.34-1.37 — see https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html for the current table."
   type        = string
-  default     = "1.31"
+  default     = "1.34"
 }
 
 variable "node_instance_type" {
