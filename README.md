@@ -32,7 +32,7 @@ This repo has two independent apps that talk to each other purely over HTTP — 
 | | Vitest + Testing Library, ESLint |
 | DevOps / Infrastructure | Docker Compose (`php`, `nginx`, `mysql`, `web-user` services) — local app dev |
 | | Kubernetes (Helm chart, `kubernetes/chart/`) — HPA, PodDisruptionBudgets, zero-downtime rollouts; local via [kind](https://kind.sigs.k8s.io/) |
-| | Terraform — Dev: `terraform/dev/`, self-managed k3s on EC2 (ephemeral); Staging: `terraform/staging/`, AWS EKS (scaffolded, not yet applied) |
+| | Terraform — Dev: `terraform/dev/`, self-managed k3s on EC2 (ephemeral); Staging: `terraform/staging/`, AWS EKS with private subnets, IRSA, and the AWS Load Balancer Controller |
 | | GitHub Actions CI, images published to GHCR |
 
 ## Project Structure
@@ -78,7 +78,7 @@ customer-insights/
 │   └── chart/                 # Helm chart — Deployments, HPA, PDBs, Ingress
 ├── terraform/
 │   ├── dev/                   # k3s on EC2 (ephemeral: deploy → test → destroy)
-│   └── staging/               # AWS EKS (scaffolded, not yet applied)
+│   └── staging/               # AWS EKS (private subnets, IRSA, ALB Controller)
 ├── docs/                      # Reference docs — API, Helm, deployments
 ├── compose.yml
 ├── Makefile
@@ -118,6 +118,14 @@ See each app's own commands (single test/file runs, migrations, linting, etc.) i
   - [aws.md](docs/dev/aws.md)
   - [terraform.md](docs/dev/terraform.md)
   - [kubernetes.md](docs/dev/kubernetes.md)
+  - [debugging.md](docs/dev/debugging.md)
+- **Staging**: managed AWS EKS cluster provisioned by `terraform/staging/` — private node subnets behind a NAT Gateway, IRSA for the EBS CSI driver and the AWS Load Balancer Controller. See:
+  - [aws.md](docs/staging/aws.md)
+  - [terraform.md](docs/staging/terraform.md)
+  - [kubernetes.md](docs/staging/kubernetes.md)
+  - [debugging.md](docs/staging/debugging.md)
+
+See [deploy.md](docs/deploy.md) for the cross-tier workflow to ship a change (push → CI publish → bump the pin → redeploy) to all three.
 
 ## Roadmap Ahead
 
