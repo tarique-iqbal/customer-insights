@@ -57,7 +57,7 @@ nginx:
 frontend:
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
-    tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
+    tag: "0723468d71d2fac960c8e0c2fcb6afdaf5310f59"
   containerPort: 80
   apiUrl: http://api.csat-staging.internal
   resources:
