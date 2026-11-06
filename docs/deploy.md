@@ -56,6 +56,8 @@ helm upgrade csat kubernetes/chart --namespace csat -f kubernetes/chart/values-s
 
 Then verify per `docs/staging/debugging.md`'s approach: curl the ALB's real hostname with an explicit `Host:` header (`kubectl get ingress csat -n csat` to find it), not the placeholder hostnames themselves — those were never meant to resolve. Watch for the ALB target-group warmup race documented there if this redeploy happens to create a brand-new ALB rather than reusing an existing one.
 
+**Automated alternative for steps 2-3.c (staging only)**: `.github/workflows/bump-pin.yml` and `.github/workflows/deploy-staging.yml` do this same pin-bump-then-upgrade from GitHub Actions instead of a local shell, authenticating to AWS via OIDC (`terraform/staging/main.tf`'s "GitHub Actions CI/CD identity" section — no stored AWS keys). One-time setup before `deploy-staging.yml` can run: create a `staging` GitHub Environment with a required reviewer, and set that environment's `STAGING_GITHUB_ACTIONS_ROLE_ARN` and `AWS_REGION` variables to `terraform output github_actions_deploy_role_arn` / `terraform output aws_region`. Dev and local still only have the manual path above; dev's ephemeral, no-standing-cluster lifecycle makes automating it a materially bigger change (CI would have to own the EC2/Terraform lifecycle, not just the Helm step), and local by definition runs on your own machine.
+
 ## Summary
 
 | Step | Local (kind) | Dev (EC2) | Staging (EKS) |
