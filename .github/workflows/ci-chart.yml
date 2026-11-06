@@ -1,0 +1,73 @@
+name: CI (Helm chart)
+
+# Validates kubernetes/chart/** the way ci-api.yml/ci-client.yml validate
+# their apps — no live cluster or cloud credentials needed, so this is safe
+# to run on every push. Catches a chart mistake (bad lint, a manifest that
+# wouldn't even parse against the real Kubernetes API schema) before it's
+# only found by someone running `helm lint`/`helm template` by hand.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'kubernetes/chart/**'
+      - '.github/workflows/ci-chart.yml'
+      - '!**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-chart-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: helm lint (${{ matrix.values-file }})
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        values-file:
+          - values.yaml
+          - values-local.yaml
+          - values-dev.yaml
+          - values-staging.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: helm lint
+        run: helm lint kubernetes/chart -f kubernetes/chart/${{ matrix.values-file }}
+
+  template:
+    name: helm template + kubeconform (${{ matrix.values-file }})
+    needs: lint
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        # Bare values.yaml deliberately excluded here: secret.yaml's
+        # `required` on mysql.credentials.password only warns under `helm
+        # lint` but hard-fails `helm template` — every real tier supplies
+        # its own password (or existingSecret), so values.yaml alone was
+        # never meant to render standalone.
+        values-file:
+          - values-local.yaml
+          - values-dev.yaml
+          - values-staging.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar -xz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: helm template | kubeconform
+        run: >
+          helm template csat kubernetes/chart -f kubernetes/chart/${{ matrix.values-file }}
+          | kubeconform -strict -summary
