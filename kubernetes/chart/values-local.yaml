@@ -9,7 +9,6 @@ mysql:
   credentials:
     password: secret
     rootPassword: secret
-
 # Needs metrics-server installed separately (like ingress-nginx above, not
 # part of this chart):
 #   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -28,8 +27,7 @@ backend:
   # PHP 8.2.34; this one is 8.2.35.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
-
+    tag: "181c658723b4726c72a16b28320b90302d540e31"
 nginx:
   autoscaling:
     enabled: true
@@ -40,12 +38,10 @@ nginx:
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
     tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
-
 # *.localtest.me resolves to 127.0.0.1 by design (a public DNS wildcard), so
 # these work with no /etc/hosts edit.
 api:
   corsAllowOrigin: http://app.localtest.me
-
 frontend:
   apiUrl: http://api.localtest.me
   autoscaling:
@@ -57,7 +53,6 @@ frontend:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
     tag: "5e57ab3360fe43c0582890bae03b6d9f6ea8986e"
   containerPort: 80
-
 ingress:
   enabled: true
   apiHost: api.localtest.me

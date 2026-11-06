@@ -10,7 +10,6 @@
 api:
   appEnv: staging
   corsAllowOrigin: http://app.csat-staging.internal
-
 mysql:
   # Same in-cluster StatefulSet as dev/local, no RDS — see notes/aws-qna.md's
   # staging-roadmap Q&A for why. Throwaway credentials, same spirit as
@@ -26,7 +25,6 @@ mysql:
       memory: 160Mi
     limits:
       memory: 512Mi
-
 backend:
   # The same published, already-verified prod image values-local.yaml and
   # values-dev.yaml pin. Manual, static reference — bump by hand after a
@@ -37,14 +35,13 @@ backend:
   # never been applied).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
+    tag: "181c658723b4726c72a16b28320b90302d540e31"
   resources:
     requests:
       cpu: 50m
       memory: 64Mi
     limits:
       memory: 160Mi
-
 nginx:
   # Bumped 2026-10-25 alongside backend.image above for the PHP2Shell fix
   # (same publish job, same commit, kept in step).
@@ -57,7 +54,6 @@ nginx:
       memory: 16Mi
     limits:
       memory: 32Mi
-
 frontend:
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
@@ -70,7 +66,6 @@ frontend:
       memory: 64Mi
     limits:
       memory: 128Mi
-
 # className "alb" needs the AWS Load Balancer Controller installed first
 # (terraform/staging/run.sh does this, using the IRSA role Terraform
 # output). target-type "ip" routes directly to pod IPs (EKS's VPC CNI gives

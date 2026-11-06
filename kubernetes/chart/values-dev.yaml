@@ -9,7 +9,6 @@
 api:
   appEnv: dev
   corsAllowOrigin: http://app.REPLACE_ME_WORKER_IP.nip.io
-
 mysql:
   # Same in-cluster StatefulSet as local, no RDS. Throwaway credentials, same
   # spirit as values-local.yaml's — nothing here is meant to outlive a test
@@ -31,7 +30,6 @@ mysql:
       memory: 160Mi
     limits:
       memory: 512Mi
-
 backend:
   # The same published, already-verified prod image values-local.yaml pins
   # (no xdebug, no dev deps). Manual, static reference — bump by hand after
@@ -42,14 +40,13 @@ backend:
   # EC2 run (terraform/dev/ has no live instances right now).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
+    tag: "181c658723b4726c72a16b28320b90302d540e31"
   resources:
     requests:
       cpu: 50m
       memory: 64Mi
     limits:
       memory: 160Mi
-
 nginx:
   # Same published image as backend/frontend below, same manual-pin
   # convention — bump by hand after a push. Verified live in kind on
@@ -65,7 +62,6 @@ nginx:
       memory: 16Mi
     limits:
       memory: 32Mi
-
 frontend:
   # The same published static prod build values-local.yaml pins (nginx-served,
   # not the Vite dev server) — real env.js runtime config. Bump by hand
@@ -81,7 +77,6 @@ frontend:
       memory: 64Mi
     limits:
       memory: 128Mi
-
 # className stays the values.yaml default ("nginx") — ingress-nginx needs
 # installing on this cluster the same way it's installed separately for
 # kind, except it needs a bare-metal-style install (controller.hostNetwork,
