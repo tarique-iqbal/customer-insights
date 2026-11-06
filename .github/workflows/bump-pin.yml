@@ -1,0 +1,57 @@
+name: Bump image pin
+
+# Click-button form of docs/deploy.md's Step 2 — edits the same three
+# values files a manual pin bump would, nothing more. Doesn't deploy
+# anything by itself; deploy-staging.yml (or a manual helm upgrade/run.sh)
+# is the separate step that actually applies a bumped pin.
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Which component's image tag to bump
+        required: true
+        type: choice
+        options:
+          - backend
+          - nginx
+          - frontend
+      sha:
+        description: "Commit SHA whose published image to pin to (blank = this workflow run's own HEAD on main)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Bump pin in all three values files
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve target SHA
+        id: resolve
+        run: |
+          sha="${{ inputs.sha }}"
+          if [ -z "$sha" ]; then
+            sha="${{ github.sha }}"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Set .${{ inputs.component }}.image.tag in all three values files
+        run: |
+          for f in kubernetes/chart/values-local.yaml kubernetes/chart/values-dev.yaml kubernetes/chart/values-staging.yaml; do
+            yq -i '.${{ inputs.component }}.image.tag = "${{ steps.resolve.outputs.sha }}"' "$f"
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add kubernetes/chart/values-local.yaml kubernetes/chart/values-dev.yaml kubernetes/chart/values-staging.yaml
+          git commit -m "chore(chart): bump ${{ inputs.component }} pin to ${{ steps.resolve.outputs.sha }}"
+          git push
