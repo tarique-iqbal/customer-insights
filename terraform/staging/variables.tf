@@ -49,3 +49,9 @@ variable "allowed_admin_cidr" {
   type        = string
   default     = "0.0.0.0/0"
 }
+
+variable "github_repo" {
+  description = "owner/repo this tier's GitHub Actions deploy role trusts (scopes the OIDC trust policy's :sub condition to this repo's main branch only)."
+  type        = string
+  default     = "tarique-iqbal/customer-insights"
+}

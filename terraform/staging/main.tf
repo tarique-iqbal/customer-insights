@@ -162,6 +162,13 @@ resource "aws_eks_cluster" "this" {
     public_access_cidrs     = [var.allowed_admin_cidr]
   }
 
+  # API-based access entries (below, for the GitHub Actions deploy role) need
+  # this explicitly — don't rely on whatever a given EKS/provider version
+  # happens to default to.
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
   depends_on = [aws_iam_role_policy_attachment.cluster]
 
   tags = local.common_tags
@@ -341,4 +348,88 @@ resource "aws_iam_role" "alb_controller" {
 resource "aws_iam_role_policy_attachment" "alb_controller" {
   role       = aws_iam_role.alb_controller.name
   policy_arn = aws_iam_policy.alb_controller.arn
+}
+
+# --- GitHub Actions CI/CD identity (OIDC) ---------------------------------
+# Lets a GitHub Actions workflow run assume an AWS role via a short-lived
+# federated token instead of long-lived access keys stored as repo secrets —
+# same "no stored credentials" shape as the IRSA roles above, just federating
+# GitHub's token issuer instead of this cluster's own OIDC issuer. Distinct
+# from aws_iam_openid_connect_provider.eks: that one federates Kubernetes
+# ServiceAccounts (pods calling AWS), this one federates CI (a workflow run
+# calling AWS).
+
+data "tls_certificate" "github_actions" {
+  url = "https://token.actions.githubusercontent.com"
+}
+
+resource "aws_iam_openid_connect_provider" "github_actions" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.github_actions.certificates[0].sha1_fingerprint]
+
+  tags = merge(local.common_tags, { Name = "${var.name}-github-actions" })
+}
+
+resource "aws_iam_role" "github_actions_deploy" {
+  name = "${var.name}-github-actions-deploy"
+
+  # StringLike (not StringEquals) on :sub, scoped to this repo's main branch
+  # only — a workflow run on any other branch, fork, or repo can't assume
+  # this role.
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = aws_iam_openid_connect_provider.github_actions.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+        }
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
+        }
+      }
+    }]
+  })
+
+  tags = merge(local.common_tags, { Name = "${var.name}-github-actions-deploy" })
+}
+
+resource "aws_iam_role_policy" "github_actions_deploy" {
+  name = "${var.name}-github-actions-deploy"
+  role = aws_iam_role.github_actions_deploy.id
+
+  # Just enough to build a kubeconfig (`aws eks update-kubeconfig`) — actual
+  # in-cluster permissions come from the access entry below, not from IAM.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "eks:DescribeCluster"
+      Resource = aws_eks_cluster.this.arn
+    }]
+  })
+}
+
+resource "aws_eks_access_entry" "github_actions_deploy" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = aws_iam_role.github_actions_deploy.arn
+  type          = "STANDARD"
+
+  tags = local.common_tags
+}
+
+resource "aws_eks_access_policy_association" "github_actions_deploy" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = aws_iam_role.github_actions_deploy.arn
+  # Namespace-scoped, not cluster-admin — this role only ever needs to
+  # helm-upgrade the csat release in the csat namespace.
+  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+
+  access_scope {
+    type       = "namespace"
+    namespaces = ["csat"]
+  }
 }

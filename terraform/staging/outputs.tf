@@ -36,3 +36,8 @@ output "alb_controller_role_arn" {
   description = "Pass as the eks.amazonaws.com/role-arn annotation on the aws-load-balancer-controller Helm release's ServiceAccount — the IRSA role it assumes to call the EC2/ELB APIs."
   value       = aws_iam_role.alb_controller.arn
 }
+
+output "github_actions_deploy_role_arn" {
+  description = "Set as the STAGING_GITHUB_ACTIONS_ROLE_ARN repo/environment variable — .github/workflows/deploy-staging.yml's configure-aws-credentials step assumes this role via OIDC."
+  value       = aws_iam_role.github_actions_deploy.arn
+}
