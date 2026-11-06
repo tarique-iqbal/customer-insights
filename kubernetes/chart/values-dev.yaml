@@ -55,7 +55,7 @@ nginx:
   # re-verified against a real dev EC2 run.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
-    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
+    tag: "ef40e51ddce7c8aef16aa959aec478e5aee3f717"
   resources:
     requests:
       cpu: 20m
