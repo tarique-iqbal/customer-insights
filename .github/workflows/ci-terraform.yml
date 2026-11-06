@@ -1,0 +1,60 @@
+name: CI (Terraform)
+
+# Validates terraform/** the way ci-api.yml/ci-client.yml validate their
+# apps — fmt + validate only, no plan/apply. Deliberately no live AWS
+# credentials here: `plan`/`apply` against real infrastructure has stayed a
+# manual, human-driven step everywhere else in this project (run.sh,
+# docs/deploy.md's staging steps), and automating that on every push would
+# be a materially bigger decision than "catch a syntax/type error early."
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/ci-terraform.yml'
+      - '!**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-terraform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fmt:
+    name: terraform fmt
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive terraform/
+
+  validate:
+    name: terraform validate (${{ matrix.module }})
+    needs: fmt
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        module: [dev, staging]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform init (no backend, no state)
+        working-directory: terraform/${{ matrix.module }}
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        working-directory: terraform/${{ matrix.module }}
+        run: terraform validate
