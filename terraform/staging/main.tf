@@ -175,13 +175,13 @@ resource "aws_eks_cluster" "this" {
 }
 
 # access_config above doesn't set bootstrap_cluster_creator_admin_permissions,
-# whose default turned out to be false, not true — confirmed live 2026-11-07,
-# the applying identity got "the server has asked for the client to provide
-# credentials" (EKS's unauthenticated-principal response) from kubectl/helm
-# right after a clean apply, with zero access entries for any human
-# principal. Granting access explicitly here instead of setting that
-# attribute now: it only takes effect at cluster *creation*, so flipping it
-# on an already-existing cluster would force a full replacement.
+# whose default is false, not true: without this, the applying identity has
+# zero access entries on the cluster and kubectl/helm get "the server has
+# asked for the client to provide credentials" (EKS's unauthenticated-
+# principal response), even right after a clean apply. Granting access
+# explicitly here instead of setting that attribute: it only takes effect
+# at cluster *creation*, so flipping it on an already-existing cluster
+# would force a full replacement.
 #
 # Deliberately keyed off whoever is applying right now, not a fixed ARN:
 # this lab account's identity has rotated at least 4 times across this
@@ -408,17 +408,30 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
   # Same reasoning as aws_iam_openid_connect_provider.eks above: tagging
   # this resource type needs iam:TagOpenIDConnectProvider, which this
   # identity doesn't have, and the create call fails outright (not just a
-  # follow-up warning) if tags are set. Confirmed live 2026-11-07. Decision:
-  # no tags on this one resource so creation succeeds without needing it.
+  # follow-up warning) if tags are set. Decision: no tags on this one
+  # resource so creation succeeds without needing it.
   # tags = merge(local.common_tags, { Name = "${var.name}-github-actions" })
 }
 
 resource "aws_iam_role" "github_actions_deploy" {
-  name = "${var.name}-github-actions-deploy"
+  # Not named "-github-actions-deploy": this identity has no
+  # iam:UpdateAssumeRolePolicy, so once this role exists, its trust policy
+  # can never be changed in place — only replaced by creating a
+  # differently-named role. If the trust policy's :sub condition below ever
+  # needs to change again, pick another distinct name rather than editing
+  # the condition and re-applying; the old role becomes an inert,
+  # unreferenced orphan (no cost, can't be assumed by anything).
+  name = "${var.name}-github-actions-deployer"
 
-  # StringLike (not StringEquals) on :sub, scoped to this repo's main branch
-  # only — a workflow run on any other branch, fork, or repo can't assume
-  # this role.
+  # The :sub claim's format depends on whether the calling job targets a
+  # GitHub Environment, not just which branch it ran on. deploy-staging.yml
+  # (the only user of this role) sets `environment: staging`, which makes
+  # GitHub mint repo:<repo>:environment:<name> as :sub — NOT
+  # repo:<repo>:ref:refs/heads/<branch>, which is only what you get with no
+  # environment configured. Using the wrong form here denies
+  # AssumeRoleWithWebIdentity with AWS's generic "not authorized" message,
+  # the same text as any other trust-policy mismatch — nothing in that
+  # error points specifically at :sub, so this is easy to misdiagnose.
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -428,9 +441,7 @@ resource "aws_iam_role" "github_actions_deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        }
-        StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:environment:staging"
         }
       }
     }]
@@ -474,7 +485,6 @@ resource "aws_eks_access_policy_association" "github_actions_deploy" {
   # principal_arn as a plain string), so Terraform has no implicit edge
   # between them — without this, the two can run concurrently and this one
   # 404s (AssociateAccessPolicy needs the access entry to exist first).
-  # Confirmed live 2026-11-07.
   depends_on = [aws_eks_access_entry.github_actions_deploy]
 
   access_scope {
