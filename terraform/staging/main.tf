@@ -174,6 +174,43 @@ resource "aws_eks_cluster" "this" {
   tags = local.common_tags
 }
 
+# access_config above doesn't set bootstrap_cluster_creator_admin_permissions,
+# whose default turned out to be false, not true — confirmed live 2026-11-07,
+# the applying identity got "the server has asked for the client to provide
+# credentials" (EKS's unauthenticated-principal response) from kubectl/helm
+# right after a clean apply, with zero access entries for any human
+# principal. Granting access explicitly here instead of setting that
+# attribute now: it only takes effect at cluster *creation*, so flipping it
+# on an already-existing cluster would force a full replacement.
+#
+# Deliberately keyed off whoever is applying right now, not a fixed ARN:
+# this lab account's identity has rotated at least 4 times across this
+# project (ph2l-poridhi -> hhz3-poridhi -> htzn-poridhi -> xb5j-poridhi).
+# principal_arn is immutable on an access entry, so if the identity rotates
+# again, the next apply replaces this entry for the new identity rather than
+# silently leaving the old one stale.
+data "aws_caller_identity" "current" {}
+
+resource "aws_eks_access_entry" "admin" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = data.aws_caller_identity.current.arn
+  type          = "STANDARD"
+
+  tags = local.common_tags
+}
+
+resource "aws_eks_access_policy_association" "admin" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = data.aws_caller_identity.current.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  depends_on = [aws_eks_access_entry.admin]
+
+  access_scope {
+    type = "cluster"
+  }
+}
+
 # --- OIDC / IRSA ---------------------------------------------------------
 # Lets pods (the AWS Load Balancer Controller, below) assume an IAM role
 # directly via a Kubernetes ServiceAccount, instead of inheriting whatever
@@ -368,7 +405,12 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.github_actions.certificates[0].sha1_fingerprint]
 
-  tags = merge(local.common_tags, { Name = "${var.name}-github-actions" })
+  # Same reasoning as aws_iam_openid_connect_provider.eks above: tagging
+  # this resource type needs iam:TagOpenIDConnectProvider, which this
+  # identity doesn't have, and the create call fails outright (not just a
+  # follow-up warning) if tags are set. Confirmed live 2026-11-07. Decision:
+  # no tags on this one resource so creation succeeds without needing it.
+  # tags = merge(local.common_tags, { Name = "${var.name}-github-actions" })
 }
 
 resource "aws_iam_role" "github_actions_deploy" {
@@ -427,6 +469,13 @@ resource "aws_eks_access_policy_association" "github_actions_deploy" {
   # Namespace-scoped, not cluster-admin — this role only ever needs to
   # helm-upgrade the csat release in the csat namespace.
   policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+
+  # Neither resource references the other's attributes (both just take
+  # principal_arn as a plain string), so Terraform has no implicit edge
+  # between them — without this, the two can run concurrently and this one
+  # 404s (AssociateAccessPolicy needs the access entry to exist first).
+  # Confirmed live 2026-11-07.
+  depends_on = [aws_eks_access_entry.github_actions_deploy]
 
   access_scope {
     type       = "namespace"
