@@ -51,7 +51,7 @@ frontend:
   # by hand after a push, same as backend.image above.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
-    tag: "264de6eaa3d571c9ac426593dfe1829054da74e1"
+    tag: "126251f2e041394cd70698a71fb50e77a3987039"
   containerPort: 80
 ingress:
   enabled: true
