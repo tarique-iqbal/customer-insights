@@ -36,8 +36,13 @@ Whatever IAM identity applies this Terraform needs `eks:*` at minimum — an ide
 
 **Destroy needs more than apply does.** An identity able to `apply` this module isn't necessarily able to `destroy` it cleanly: `terraform destroy` needs `iam:DetachRolePolicy` (and, for a fully clean teardown, `iam:DeleteRole`/`iam:DeletePolicy`/`iam:DeleteOpenIDConnectProvider`) on top of everything `apply` needs, since every IAM role/policy/OIDC provider created here has to be unwound in the opposite order. An identity with create/attach access but no matching detach/delete access can build this stack fine but can never fully tear it back down — the destroy gets partway through (the VPC/EKS cluster/subnets, which only need `ec2:*`/`eks:*`, still go) and leaves every IAM resource (4 roles, 1 policy, 1 OIDC provider, 6 attachments) orphaned. `docs/staging/debugging.md`'s "Tearing this down" section covers the actual failure and the `terraform state rm` + re-import workaround.
 
+## `allowed_admin_cidr` is deliberately left open
+
+Unlike `terraform/dev/variables.tf`'s equivalent (narrow that one to your own IP for anything beyond a quick test), this tier's `allowed_admin_cidr` stays `0.0.0.0/0` on purpose: `.github/workflows/deploy-staging.yml` runs on GitHub-hosted runners, whose IPs are large, published ranges that change often — narrowing `public_access_cidrs` to one person's IP would silently break that workflow's ability to reach the cluster's API server at all, as it did for a session narrowing it to a laptop's IP before this automation existed.
+
+The network layer isn't the real access boundary here — IAM and Kubernetes RBAC are. Reaching the EKS API server at all doesn't grant any permissions; `main.tf`'s "GitHub Actions CI/CD identity" section's trust policy only lets a workflow run on this repo's `main` branch assume the deploy role, and the `aws_eks_access_entry`/`aws_eks_access_policy_association` pair only grants that role `AmazonEKSEditPolicy` scoped to the `csat` namespace specifically — not cluster-admin, and nothing a request from an arbitrary IP can bypass.
+
 ## Known gaps, as of this doc's writing
 
 - **No remote Terraform state backend** — flagged directly in `providers.tf`. Unlike `dev` (destroyed every session, so losing local state is low-stakes), this tier is meant to stay up, which makes local-only state a real risk once more than one person/machine touches it.
 - **No Route53/real DNS** — the ALB is only reachable via its raw AWS-generated hostname plus a manual `Host:` header (see `docs/staging/kubernetes.md`).
-- **`allowed_admin_cidr` defaults to `0.0.0.0/0`** (open), same convention as `terraform/dev/variables.tf` — narrow it in `terraform.tfvars` before relying on this for longer than a quick test.
