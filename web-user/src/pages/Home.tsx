@@ -6,7 +6,7 @@ const Home: React.FC = () => {
   return (
     <MainLayout left={<Nav />}>
       <h1>Welcome - Home Page</h1>
-      <p>Customer Satisfaction Score (CSAT) is a key performance indicator that measures how satisfied customers are with a company's products, services, or experiences.</p>
+      <p>Customer Satisfaction Score (CSAT) is a key performance indicator that measures how satisfied customers are with a company&apos;s products, services, or experiences.</p>
     </MainLayout>
   );
 };
