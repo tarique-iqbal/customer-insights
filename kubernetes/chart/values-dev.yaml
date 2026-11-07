@@ -68,7 +68,7 @@ frontend:
   # after a push, same as backend.image above.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
-    tag: "126251f2e041394cd70698a71fb50e77a3987039"
+    tag: "75a39ce9e6fdfe5b462a948a1dc31e9da4608d8a"
   containerPort: 80
   apiUrl: http://api.REPLACE_ME_WORKER_IP.nip.io
   resources:
