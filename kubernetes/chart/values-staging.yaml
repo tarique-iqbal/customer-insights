@@ -35,7 +35,7 @@ backend:
   # never been applied).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "181c658723b4726c72a16b28320b90302d540e31"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
   resources:
     requests:
       cpu: 50m
@@ -47,7 +47,7 @@ nginx:
   # (same publish job, same commit, kept in step).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
-    tag: "ef40e51ddce7c8aef16aa959aec478e5aee3f717"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
   resources:
     requests:
       cpu: 20m

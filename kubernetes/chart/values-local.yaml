@@ -27,7 +27,7 @@ backend:
   # PHP 8.2.34; this one is 8.2.35.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
-    tag: "181c658723b4726c72a16b28320b90302d540e31"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
 nginx:
   autoscaling:
     enabled: true
@@ -37,7 +37,7 @@ nginx:
   # (same publish job, same commit, kept in step).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
-    tag: "ef40e51ddce7c8aef16aa959aec478e5aee3f717"
+    tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
 # *.localtest.me resolves to 127.0.0.1 by design (a public DNS wildcard), so
 # these work with no /etc/hosts edit.
 api:
