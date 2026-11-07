@@ -5,8 +5,8 @@ import Nav from '../components/Nav';
 const Home: React.FC = () => {
   return (
     <MainLayout left={<Nav />}>
-      <h1>Welcome to the Home Page</h1>
-      <p>This is your main content.</p>
+      <h1>Welcome - Home Page</h1>
+      <p>Customer Satisfaction Score (CSAT) is a key performance indicator that measures how satisfied customers are with a company's products, services, or experiences.</p>
     </MainLayout>
   );
 };
