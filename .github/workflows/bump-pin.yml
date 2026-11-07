@@ -9,15 +9,16 @@ on:
   workflow_dispatch:
     inputs:
       component:
-        description: Which component's image tag to bump
+        description: Which component's image tag to bump (or all three)
         required: true
         type: choice
         options:
           - backend
           - nginx
           - frontend
+          - all
       sha:
-        description: "Commit SHA whose published image to pin to (blank = this workflow run's own HEAD on main)"
+        description: "Commit SHA whose published image to pin to (blank = this workflow run's own HEAD on main). Only meaningful for a single component — 'all' always uses HEAD, since backend/nginx/frontend are rarely all published from the same commit."
         required: false
         type: string
 
@@ -37,15 +38,28 @@ jobs:
         id: resolve
         run: |
           sha="${{ inputs.sha }}"
-          if [ -z "$sha" ]; then
+          if [ -z "$sha" ] || [ "${{ inputs.component }}" = "all" ]; then
             sha="${{ github.sha }}"
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Set .${{ inputs.component }}.image.tag in all three values files
+      - name: Resolve component list
+        id: components
+        run: |
+          if [ "${{ inputs.component }}" = "all" ]; then
+            echo "list=backend nginx frontend" >> "$GITHUB_OUTPUT"
+            echo "label=all three components'" >> "$GITHUB_OUTPUT"
+          else
+            echo "list=${{ inputs.component }}" >> "$GITHUB_OUTPUT"
+            echo "label=${{ inputs.component }}'s" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set image.tag in all three values files
         run: |
           for f in kubernetes/chart/values-local.yaml kubernetes/chart/values-dev.yaml kubernetes/chart/values-staging.yaml; do
-            yq -i '.${{ inputs.component }}.image.tag = "${{ steps.resolve.outputs.sha }}"' "$f"
+            for c in ${{ steps.components.outputs.list }}; do
+              yq -i ".$c.image.tag = \"${{ steps.resolve.outputs.sha }}\"" "$f"
+            done
           done
 
       - name: Commit and push
@@ -53,5 +67,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add kubernetes/chart/values-local.yaml kubernetes/chart/values-dev.yaml kubernetes/chart/values-staging.yaml
-          git commit -m "chore(chart): bump ${{ inputs.component }} pin to ${{ steps.resolve.outputs.sha }}"
+          git commit -m "chore(chart): bump ${{ steps.components.outputs.label }} pin to ${{ steps.resolve.outputs.sha }}"
           git push
