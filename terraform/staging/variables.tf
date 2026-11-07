@@ -45,7 +45,7 @@ variable "node_max_size" {
 }
 
 variable "allowed_admin_cidr" {
-  description = "CIDR allowed to reach the EKS API's public endpoint (kubectl/helm from outside the cluster). Same convention as terraform/dev/variables.tf — open by default, narrow to your own IP/32 before relying on this for longer than a quick test."
+  description = "CIDR allowed to reach the EKS API's public endpoint. Deliberately left open (0.0.0.0/0), unlike terraform/dev/variables.tf's equivalent: deploy-staging.yml runs on GitHub-hosted runners, whose IPs are large, published ranges that change often — narrowing this to one IP (as an earlier version of terraform.tfvars did, for a human's own laptop) silently breaks that workflow's ability to reach the cluster at all. The real access boundary here is IAM + Kubernetes RBAC, not the network: see main.tf's \"GitHub Actions CI/CD identity\" section (trust policy scoped to this repo's main branch) and the aws_eks_access_entry/aws_eks_access_policy_association pair (scoped to AmazonEKSEditPolicy on just the csat namespace) — reaching the API server at all doesn't grant those permissions."
   type        = string
   default     = "0.0.0.0/0"
 }
