@@ -48,6 +48,14 @@ Here this means `aws-node` (the VPC CNI DaemonSet — every Pod gets a real VPC-
 
 **Fix**: `terraform import aws_iam_role.node csat-staging-node` — adopted the existing role into state instead of fighting for more permissions. This only works cleanly when the real resource's attributes already match what Terraform's config expects (confirmed first via `aws iam get-role`, comparing its `AssumeRolePolicyDocument` against the resource block before importing) — otherwise the next `plan` would show a diff Terraform might not have permission to reconcile either.
 
+### Case: `AssumeRoleWithWebIdentity` denied for the GitHub Actions deploy role
+
+**Concept you need**: the `:sub` claim GitHub mints for an OIDC token depends on whether the calling job targets a GitHub Environment, not just which branch it ran on. A job with no `environment:` set gets `repo:<owner>/<repo>:ref:refs/heads/<branch>`; a job with `environment: staging` gets `repo:<owner>/<repo>:environment:staging` instead — a different claim entirely, not an additional one.
+
+**What happens**: `.github/workflows/deploy-staging.yml`'s `configure-aws-credentials` step fails with `Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity` if `aws_iam_role.github_actions_deploy`'s trust policy condition matches the wrong claim format for how the job is actually configured. AWS's denial here is the same generic message for any trust-policy mismatch — nothing in it points specifically at `:sub`, so it's easy to misdiagnose as an OIDC provider/thumbprint problem instead.
+
+**Fix**: match the condition to the job's actual configuration — `deploy-staging.yml` sets `environment: staging`, so the trust policy's `StringEquals` needs `"token.actions.githubusercontent.com:sub" = "repo:<repo>:environment:staging"`, not a `ref:refs/heads/<branch>` condition. If this ever needs changing again later, remember this identity can't `iam:UpdateAssumeRolePolicy` either (see the "can never delete the IAM resources it creates" case below for the same identity-permission pattern) — fix it by renaming the Terraform resource, not by re-applying the same name with a corrected condition.
+
 ## Layer 3: IRSA/OIDC — the trust chain with no dev-tier equivalent
 
 ```bash
@@ -102,9 +110,14 @@ Everything above happens on the way up. These two only happen on the way down, a
 
 **Concept you need**: an IAM policy granting `iam:CreateRole`/`iam:AttachRolePolicy`/`iam:CreateOpenIDConnectProvider` etc. doesn't imply the matching `Detach*`/`Delete*` actions exist too — these are separate, independently-granted actions in AWS's IAM permission model, not a create/destroy pair that's granted or withheld together. Confirm which ones an identity actually has by reading its attached policy document directly, never by assuming symmetry. On this account's applying identity specifically: `ec2:*` and `eks:*` are both fully granted, but its attached policy has *zero* IAM detach/delete actions of any kind — an account-specific fact, not something every AWS account's policies do.
 
-**What happens**: `terraform destroy` fails `iam:DetachRolePolicy` with `AccessDenied` on every IAM role this stack created (`cluster`, `node`, `ebs_csi`, `alb_controller`) and their policy attachments — 12 resources in total (4 roles, 1 policy, 1 OIDC provider, 6 attachments). Unlike the "orphaned IAM role" case under Layer 2 above (a leftover from one abandoned apply), this isn't something that happened once by accident — it happens on *every* destroy this identity ever runs, with no way around it short of a different identity.
+**What happens**: `terraform destroy` fails `iam:DetachRolePolicy` with `AccessDenied` on every IAM role this stack created and their policy attachments. Unlike the "orphaned IAM role" case under Layer 2 above (a leftover from one abandoned apply), this isn't something that happened once by accident — it happens on *every* destroy this identity ever runs, with no way around it short of a different identity.
 
-**Fix**: `terraform state rm` all 12 IAM resources (untracks them only — no AWS API call, nothing is actually deleted), then `terraform destroy` again for whatever's left (the EKS cluster, VPC, subnets — all permitted under `ec2:*`/`eks:*`). The 12 resources stay orphaned in AWS afterward, costing nothing. Before the *next* `terraform apply` in this directory, re-import each one (`aws iam get-role`/`get-policy` first, to confirm it still matches `main.tf`'s config) — otherwise expect the same `409 EntityAlreadyExists` the orphaned-role case already covers, just for all 12 resources instead of 1.
+**Fix**: `terraform state rm` every blocked IAM resource (untracks them only — no AWS API call, nothing is actually deleted), then `terraform destroy` again for whatever's left (the EKS cluster, VPC, subnets — all permitted under `ec2:*`/`eks:*`). They stay orphaned in AWS afterward, costing nothing. Before the *next* `terraform apply`, don't assume every orphan is worth re-importing — treat each one on its own merits:
+
+- **A role/policy/attachment whose config never changed** (e.g. `csat-staging-node` and its three policy attachments, `csat-staging-alb-controller`) — safe to re-import as-is (`aws iam get-role`/`get-policy` first to confirm it still matches `main.tf`). Avoids an avoidable `409 EntityAlreadyExists` on the next apply.
+- **An OIDC provider tied to *this specific, now-destroyed* cluster instance** (`aws_iam_openid_connect_provider.eks` — its ARN is keyed by the cluster's unique issuer URL) — don't bother re-importing. A fresh cluster gets a brand-new issuer URL and thus a different ARN automatically; the orphaned one simply never collides and can stay abandoned.
+- **An OIDC provider that's account-wide, not per-cluster** (`aws_iam_openid_connect_provider.github_actions`, trusting `token.actions.githubusercontent.com`) — the opposite of the previous case: its URL never changes regardless of which cluster exists, so it *will* collide on the next apply. Re-import it.
+- **A role whose trust policy needs to change** — re-importing it as-is just reproduces the drift, and fixing that drift via `apply` hits the same `AccessDenied` as destroy (this identity has no `iam:UpdateAssumeRolePolicy` either — confirmed the same way, by reading the actual policy). Give the Terraform resource a new `name` instead, so the next apply does a fresh `CreateRole` rather than an update, and leave the old one orphaned for good.
 
 ## Quick reference
 
@@ -114,10 +127,11 @@ Everything above happens on the way up. These two only happen on the way down, a
 | Scattered Pod networking failures across a node | `kubectl get pods -n kube-system` — is `aws-node` healthy there | Layer 2 |
 | `terraform apply` fails on a `Tag*` action | Remove `tags` from that one resource, don't chase more IAM permissions | Tag-create case |
 | `terraform apply` fails with `409 EntityAlreadyExists` | `terraform import` the existing resource instead of fighting for delete permissions | Orphaned-role case |
+| `deploy-staging.yml` fails `AssumeRoleWithWebIdentity` | Check the trust policy's `:sub` format matches whether the job sets `environment:` | GitHub Actions OIDC case |
 | A controller Pod logs its own `AccessDenied` | Check the IRSA chain (ServiceAccount annotation → OIDC → role trust → role policy), not the Pod spec | Layer 3 |
 | Pods "missing" from an expected namespace | `kubectl get ns`, `helm list -A` — same as the dev-tier case | Layer 4 |
 | One endpoint fails right after a new ALB appears, passes on manual re-check moments later | Suspect ALB target-group warmup, not a real bug — re-check before changing anything | Layer 5 |
 | `terraform destroy` fails detaching the Internet Gateway | Check for a still-live ALB with public ENIs in the VPC first | ALB-blocks-IGW case |
-| `terraform destroy` fails `iam:DetachRolePolicy` on every IAM resource it created | `terraform state rm` them and destroy the rest; re-import before the next apply | Can't-delete-IAM case |
+| `terraform destroy` fails `iam:DetachRolePolicy` on every IAM resource it created | `terraform state rm` them and destroy the rest; re-import only the ones that actually need it | Can't-delete-IAM case |
 
 For the general cross-tier Helm/namespace/verification concepts (not EKS-specific), see `docs/dev/debugging.md` — this doc doesn't repeat what's already covered there.

@@ -6,9 +6,9 @@
 
 | File | Purpose |
 |---|---|
-| `main.tf` | VPC, subnets, route tables, NAT, the EKS cluster + its IAM role, the OIDC provider, the node group + its IAM role, the EBS CSI add-on + its IRSA role, the ALB Controller's IRSA role |
+| `main.tf` | VPC, subnets, route tables, NAT, the EKS cluster + its IAM role, the OIDC provider, the node group + its IAM role, the EBS CSI add-on + its IRSA role, the ALB Controller's IRSA role, an access entry granting the applying identity cluster-admin, and the GitHub Actions CI/CD deploy role + its own OIDC provider/access entry |
 | `variables.tf` | every input, each with a description carrying its own rationale |
-| `outputs.tf` | values `run.sh` and a human both need (cluster name/endpoint, VPC/subnet IDs, the ALB Controller's role ARN) |
+| `outputs.tf` | values `run.sh` and a human both need (cluster name/endpoint, VPC/subnet IDs, the ALB Controller's role ARN, the GitHub Actions deploy role ARN) |
 | `providers.tf` | provider versions, backend decision (see State below) |
 | `terraform.tfvars.example` | tracked template — copy to `terraform.tfvars` and edit |
 | `terraform.tfvars` | your actual values; gitignored, never committed |
