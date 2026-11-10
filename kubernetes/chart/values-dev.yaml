@@ -17,13 +17,10 @@ mysql:
   credentials:
     password: dev
     rootPassword: dev
-  # 256Mi was sized for a free-tier t2.micro's ~1GiB total, but it
-  # OOMKilled MySQL mid-InnoDB-init (exit 137) — 8.0's real startup
-  # footprint needs more than that regardless of node size. That OOMKill
-  # is why terraform/dev/variables.tf's instance_type default moved to
-  # t3.medium, which has the headroom for this (at the cost of no longer
-  # being Free-Tier-eligible). Revisit this memory number from real
-  # metrics once there's live traffic to measure against.
+  # MySQL 8.0's InnoDB init needs more than 256Mi and gets OOMKilled
+  # (exit 137) below it, regardless of node size. 512Mi requires a
+  # t3.medium-class node (terraform/dev's instance_type), not a ~1GiB
+  # t2.micro.
   resources:
     requests:
       cpu: 100m
@@ -31,13 +28,11 @@ mysql:
     limits:
       memory: 512Mi
 backend:
-  # The same published, already-verified prod image values-local.yaml pins
-  # (no xdebug, no dev deps). Manual, static reference — bump by hand after
-  # a push, same caveat as there.
-  # Bumped 2026-10-25 for the PHP2Shell fix (CVE-2026-109618/109619, see
-  # notes/issues.md) — the old pin's image was still built on vulnerable
-  # PHP 8.2.34; this one is 8.2.35. Not yet re-verified against a real dev
-  # EC2 run (terraform/dev/ has no live instances right now).
+  # The CI-published prod image (no xdebug, no dev deps), pinned by commit
+  # SHA. Static reference: it doesn't track main, so bump it via
+  # bump-pin.yml or by hand after a push. Any pinned image must be built on
+  # PHP >= 8.2.35: earlier 8.2.x is vulnerable to PHP2Shell
+  # (CVE-2026-109618/109619, unauthenticated RCE).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
     tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
@@ -48,11 +43,8 @@ backend:
     limits:
       memory: 160Mi
 nginx:
-  # Same published image as backend/frontend below, same manual-pin
-  # convention — bump by hand after a push. Verified live in kind on
-  # 2026-10-18; bumped again 2026-10-25 alongside backend.image for the
-  # PHP2Shell fix (same publish job, same commit, kept in step) — not yet
-  # re-verified against a real dev EC2 run.
+  # Built by the same publish job as backend.image, so the two share a SHA
+  # and move together.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
     tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
@@ -63,9 +55,8 @@ nginx:
     limits:
       memory: 32Mi
 frontend:
-  # The same published static prod build values-local.yaml pins (nginx-served,
-  # not the Vite dev server) — real env.js runtime config. Bump by hand
-  # after a push, same as backend.image above.
+  # The CI-published static prod build (nginx-served, not the Vite dev
+  # server); apiUrl below is injected at runtime via env.js.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
     tag: "75a39ce9e6fdfe5b462a948a1dc31e9da4608d8a"

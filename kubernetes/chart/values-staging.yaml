@@ -1,24 +1,20 @@
-# EKS, via terraform/staging — Option B (private node subnets + NAT
-# Gateway, see notes/aws-qna.md). Unlike values-dev.yaml, the hostnames
-# below don't need a nip.io/sed-substitution trick: the AWS Load Balancer
-# Controller provisions a real ALB with its own stable DNS name after this
-# chart's Ingress is applied, and curl can hit that ALB directly with a
-# `-H "Host: ..."` override (see terraform/staging/run.sh) — these hostnames
-# never need to resolve on their own for that to work. Pointing real DNS
-# (e.g. Route53) at the ALB so a browser can use them for real is a later
-# step, not done here.
+# EKS via terraform/staging (private node subnets behind a NAT Gateway).
+# Unlike values-dev.yaml, the hostnames below need no nip.io substitution:
+# the AWS Load Balancer Controller provisions an ALB with its own DNS name
+# from this chart's Ingress, and clients reach it with a `-H "Host: ..."`
+# override (see terraform/staging/run.sh). No DNS record points these
+# hostnames at the ALB.
 api:
   appEnv: staging
   corsAllowOrigin: http://app.csat-staging.internal
 mysql:
-  # Same in-cluster StatefulSet as dev/local, no RDS — see notes/aws-qna.md's
-  # staging-roadmap Q&A for why. Throwaway credentials, same spirit as
-  # values-dev.yaml's.
+  # Same in-cluster StatefulSet as dev/local, no RDS. Throwaway credentials;
+  # 3306 is never exposed outside the cluster.
   credentials:
     password: staging
     rootPassword: staging
-  # Same sizing as values-dev.yaml, same t3.medium-class node — see that
-  # file's own comment for the OOMKill history behind these numbers.
+  # Same sizing and node class as values-dev.yaml; see its comment for why
+  # 512Mi is the floor.
   resources:
     requests:
       cpu: 100m
@@ -26,13 +22,11 @@ mysql:
     limits:
       memory: 512Mi
 backend:
-  # The same published, already-verified prod image values-local.yaml and
-  # values-dev.yaml pin. Manual, static reference — bump by hand after a
-  # push, same caveat as there.
-  # Bumped 2026-10-25 for the PHP2Shell fix (CVE-2026-109618/109619, see
-  # notes/issues.md) — the old pin's image was still built on vulnerable
-  # PHP 8.2.34; this one is 8.2.35. Unverified here (terraform/staging/ has
-  # never been applied).
+  # The CI-published prod image (no xdebug, no dev deps), pinned by commit
+  # SHA. Static reference: it doesn't track main, so bump it via
+  # bump-pin.yml or by hand after a push. Any pinned image must be built on
+  # PHP >= 8.2.35: earlier 8.2.x is vulnerable to PHP2Shell
+  # (CVE-2026-109618/109619, unauthenticated RCE).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
     tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
@@ -43,8 +37,8 @@ backend:
     limits:
       memory: 160Mi
 nginx:
-  # Bumped 2026-10-25 alongside backend.image above for the PHP2Shell fix
-  # (same publish job, same commit, kept in step).
+  # Built by the same publish job as backend.image, so the two share a SHA
+  # and move together.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
     tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"

@@ -19,22 +19,19 @@ mysql:
 backend:
   autoscaling:
     enabled: true
-  # The CI-published prod image (verified: no xdebug, no dev deps), pinned to
-  # the exact commit whose Actions run was checked. This is a manual, static
-  # reference — it does not update itself, so bump it by hand after a push.
-  # Bumped 2026-10-25 for the PHP2Shell fix (CVE-2026-109618/109619, see
-  # notes/issues.md) — the old pin's image was still built on vulnerable
-  # PHP 8.2.34; this one is 8.2.35.
+  # The CI-published prod image (no xdebug, no dev deps), pinned by commit
+  # SHA. Static reference: it doesn't track main, so bump it via
+  # bump-pin.yml or by hand after a push. Any pinned image must be built on
+  # PHP >= 8.2.35: earlier 8.2.x is vulnerable to PHP2Shell
+  # (CVE-2026-109618/109619, unauthenticated RCE).
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-php
     tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
 nginx:
   autoscaling:
     enabled: true
-  # The CI-published image, same manual-pin convention as backend/frontend
-  # above (bump by hand after a push). Verified live in kind on 2026-10-18;
-  # bumped again 2026-10-25 alongside backend.image for the PHP2Shell fix
-  # (same publish job, same commit, kept in step).
+  # Built by the same publish job as backend.image, so the two share a SHA
+  # and move together.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-nginx
     tag: "51356eac73c585f0c316c95f7c8bf701279c0fcf"
@@ -46,9 +43,8 @@ frontend:
   apiUrl: http://api.localtest.me
   autoscaling:
     enabled: true
-  # The CI-published static prod image (verified: nginx-served, no
-  # node/npm, real env.js runtime config). Manual, static reference — bump
-  # by hand after a push, same as backend.image above.
+  # The CI-published static prod build (nginx-served, no node/npm); apiUrl
+  # above is injected at runtime via env.js.
   image:
     repository: ghcr.io/tarique-iqbal/customer-insights/csat-web-user
     tag: "75a39ce9e6fdfe5b462a948a1dc31e9da4608d8a"
