@@ -25,7 +25,7 @@
 Every variable in `variables.tf` documents its own "why" directly — worth reading rather than duplicating here, but the choices worth calling out:
 
 - `vpc_cidr` defaults to `10.60.0.0/16`, deliberately chosen to not collide with `terraform/dev`'s `10.50.0.0/24` or either CNI's default ranges — see `docs/staging/aws.md`'s networking section for why this tier needs more real address space than dev did.
-- `kubernetes_version` defaults to `1.34`. Standard support versions as of 2026-10-27: `1.34`-`1.37` — see the [live AWS docs table](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) for the current list.
+- `kubernetes_version` defaults to `1.34`. Check the [live AWS docs table](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) before bumping: a version past standard support moves to extended support, which bills extra.
 - `node_instance_type` defaults to `t3.medium` — deliberately reusing the same size `terraform/dev` settled on after its `t2.micro` OOMKill, rather than re-deriving a number from scratch.
 - `node_desired_size` defaults to `2` (with `min_size: 1`, `max_size: 3`) specifically so the cluster survives one node's maintenance/replacement without dropping to zero capacity — dev's single-worker shape doesn't have this concern.
 - `allowed_admin_cidr` defaults to `0.0.0.0/0` and, unlike `terraform/dev`'s equivalent, stays open on purpose: `deploy-staging.yml` runs on GitHub-hosted runners whose IPs change often. IAM and the namespace-scoped access entry are the real boundary — see `docs/staging/aws.md`.
