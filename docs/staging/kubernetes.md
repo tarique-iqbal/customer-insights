@@ -38,6 +38,6 @@ Same caveat `docs/helm.md`'s NetworkPolicy section already covers in full: the c
 
 ## Verify for real, including one EKS-specific race
 
-Same principle as every other tier: a Pod being `Ready` and `helm upgrade --wait` succeeding both mean "the resources reached their expected state," not "a real request through the full path actually works." `run.sh`'s own verification curls three endpoints through the ALB's real hostname with an explicit `Host:` header, same as described above.
+Same principle as every other tier: a Pod being `Ready` and `helm upgrade --wait` succeeding both mean "the resources reached their expected state," not "a real request through the full path actually works." `terraform/staging/verify.sh` curls three endpoints through the ALB's real hostname with an explicit `Host:` header, same as described above. Both `run.sh` and `.github/workflows/deploy-staging.yml` run it after deploying, so a local run and a CI deploy check the same things.
 
 One quirk specific to a brand-new ALB: its target group runs its *own* health check against each target, on its own schedule, independent of how long the Pod has already been `Ready` in Kubernetes' own view — so the very first endpoint checked right after a new Ingress gets its hostname can fail for the first 30-60 seconds while endpoints checked moments later pass immediately, with nothing actually broken. Full detail and how to tell this apart from a real failure is in `docs/staging/debugging.md`.

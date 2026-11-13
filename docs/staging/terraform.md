@@ -14,6 +14,7 @@
 | `terraform.tfvars` | your actual values; gitignored, never committed |
 | `iam/alb-controller-policy.json` | vendored AWS Load Balancer Controller IAM policy — see `docs/staging/aws.md`'s IRSA section |
 | `run.sh` | the actual entry point — see Orchestration below |
+| `verify.sh` | curl checks through the ALB, taking its hostname as the only argument; shared by `run.sh` and `.github/workflows/deploy-staging.yml` |
 
 ## State
 
@@ -27,7 +28,7 @@ Every variable in `variables.tf` documents its own "why" directly — worth read
 - `kubernetes_version` defaults to `1.34`. Standard support versions as of 2026-10-27: `1.34`-`1.37` — see the [live AWS docs table](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) for the current list.
 - `node_instance_type` defaults to `t3.medium` — deliberately reusing the same size `terraform/dev` settled on after its `t2.micro` OOMKill, rather than re-deriving a number from scratch.
 - `node_desired_size` defaults to `2` (with `min_size: 1`, `max_size: 3`) specifically so the cluster survives one node's maintenance/replacement without dropping to zero capacity — dev's single-worker shape doesn't have this concern.
-- `allowed_admin_cidr` defaults to `0.0.0.0/0`, same convention and same caveat as `terraform/dev/variables.tf`: narrow it in `terraform.tfvars` before relying on this past a quick test.
+- `allowed_admin_cidr` defaults to `0.0.0.0/0` and, unlike `terraform/dev`'s equivalent, stays open on purpose: `deploy-staging.yml` runs on GitHub-hosted runners whose IPs change often. IAM and the namespace-scoped access entry are the real boundary — see `docs/staging/aws.md`.
 
 ## No user-data templating
 
@@ -49,7 +50,7 @@ The normal path is `./run.sh`, not raw `terraform apply`/`helm upgrade` by hand.
 6. Install the AWS Load Balancer Controller via Helm, wired to the IRSA role from the Terraform output
 7. `helm upgrade --install` the chart, into the `csat` namespace
 8. Poll the Ingress for its real ALB hostname
-9. Curl-verify via a `Host:` header override against that hostname (no DNS points at the chart's placeholder hostnames — see `docs/staging/kubernetes.md`)
+9. Run `verify.sh` against that hostname: it curls the API and app with a `Host:` header override, since no DNS points at the chart's placeholder hostnames (see `docs/staging/kubernetes.md`)
 10. Leave the environment running
 
 **Default behavior is the opposite of dev's**: this leaves the environment up on exit, for any reason — success, a failed step, or Ctrl-C (`trap cleanup EXIT`) — specifically because this tier isn't meant to be torn down after every session. Passing `--destroy` makes teardown automatic on that same exit instead. The destroy path does one thing dev's doesn't need to worry about: `helm uninstall`s the chart *before* `terraform destroy` touches the VPC, because the ALB Controller created a real load balancer outside Terraform's own view (Helm/the controller created it, not an `aws_lb` resource) — skipping that uninstall leaves an orphaned ALB that keeps billing and can make the VPC delete fail with "has dependent objects."
