@@ -17,7 +17,7 @@ variable "vpc_cidr" {
 }
 
 variable "kubernetes_version" {
-  description = "EKS control-plane version. Standard support versions as of 2026-10-27: 1.34-1.37 — see https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html for the current table."
+  description = "EKS control-plane version. Must be in EKS standard support (extended support bills extra) — check https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html before bumping."
   type        = string
   default     = "1.34"
 }
@@ -45,7 +45,7 @@ variable "node_max_size" {
 }
 
 variable "allowed_admin_cidr" {
-  description = "CIDR allowed to reach the EKS API's public endpoint. Deliberately left open (0.0.0.0/0), unlike terraform/dev/variables.tf's equivalent: deploy-staging.yml runs on GitHub-hosted runners, whose IPs are large, published ranges that change often — narrowing this to one IP (as an earlier version of terraform.tfvars did, for a human's own laptop) silently breaks that workflow's ability to reach the cluster at all. The real access boundary here is IAM + Kubernetes RBAC, not the network: see main.tf's \"GitHub Actions CI/CD identity\" section (trust policy scoped to this repo's main branch) and the aws_eks_access_entry/aws_eks_access_policy_association pair (scoped to AmazonEKSEditPolicy on just the csat namespace) — reaching the API server at all doesn't grant those permissions."
+  description = "CIDR allowed to reach the EKS API's public endpoint. Deliberately left open (0.0.0.0/0), unlike terraform/dev/variables.tf's equivalent: deploy-staging.yml runs on GitHub-hosted runners, whose IPs are large, published ranges that change often — narrowing this to one IP silently breaks that workflow's ability to reach the cluster at all. The real access boundary here is IAM + Kubernetes RBAC, not the network: see main.tf's \"GitHub Actions CI/CD identity\" section (trust policy scoped to this repo's staging GitHub Environment) and the aws_eks_access_entry/aws_eks_access_policy_association pair (scoped to AmazonEKSEditPolicy on just the csat namespace) — reaching the API server at all doesn't grant those permissions."
   type        = string
   default     = "0.0.0.0/0"
 }
