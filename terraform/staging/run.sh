@@ -149,31 +149,4 @@ fi
 echo "ALB hostname: $ALB_HOST"
 
 echo "==> verifying"
-# No DNS points at api.csat-staging.internal / app.csat-staging.internal
-# (values-staging.yaml's placeholder hostnames) yet — curl can still prove
-# the routing works by hitting the ALB's own DNS name directly and setting
-# the Host header the Ingress actually matches on. Pointing real DNS at
-# this ALB is a later step, not needed for this to verify correctly.
-FAIL=0
-check() {
-  local host="$1" path="$2" want="$3" code=000
-  for _ in $(seq 1 10); do
-    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: $host" "http://$ALB_HOST$path" || echo 000)
-    if [ "$code" = "$want" ]; then
-      echo "  $host$path -> HTTP $code"
-      return 0
-    fi
-    sleep 5
-  done
-  echo "  $host$path -> HTTP $code (expected $want)" >&2
-  FAIL=1
-}
-check api.csat-staging.internal /healthz 200
-check api.csat-staging.internal /api/static-pages 200
-check app.csat-staging.internal / 200
-
-if [ "$FAIL" -ne 0 ]; then
-  echo "==> verification FAILED" >&2
-  exit 1
-fi
-echo "==> verification passed"
+./verify.sh "$ALB_HOST"
