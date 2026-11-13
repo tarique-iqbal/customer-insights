@@ -1,12 +1,11 @@
 name: Deploy to staging (EKS)
 
-# Click-button form of docs/deploy.md's Step 3.c: helm upgrade against the
-# already-running staging cluster, then the same curl-with-Host-header
-# verification terraform/staging/run.sh does by hand. Requires the
-# `staging` GitHub Environment to exist with a required reviewer (repo
-# settings, not this file) and the STAGING_GITHUB_ACTIONS_ROLE_ARN /
-# AWS_REGION variables to be set from terraform/staging's own outputs —
-# see notes/cicd-qna.md for the one-time setup this depends on.
+# helm upgrade against the running staging cluster (docs/deploy.md's Step
+# 3.c), then terraform/staging/verify.sh, the same checks run.sh uses.
+# Authenticates via GitHub OIDC, no stored AWS keys. Requires a `staging`
+# GitHub Environment and the STAGING_GITHUB_ACTIONS_ROLE_ARN / AWS_REGION
+# variables, set from `terraform output github_actions_deploy_role_arn` and
+# `terraform output aws_region` in terraform/staging.
 
 on:
   workflow_dispatch: {}
@@ -43,9 +42,7 @@ jobs:
           helm upgrade csat kubernetes/chart --namespace csat
           -f kubernetes/chart/values-staging.yaml --wait --timeout 8m
 
-      - name: Verify — curl the ALB's real hostname with the app Host header
+      - name: Verify API and app through the ALB
         run: |
-          host=$(kubectl get ingress csat -n csat -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: app.csat-staging.internal" "http://$host/")
-          echo "HTTP $code"
-          [ "$code" = "200" ]
+          alb=$(kubectl get ingress csat -n csat -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          terraform/staging/verify.sh "$alb"
