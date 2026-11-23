@@ -33,7 +33,7 @@ EKS's `access_config` has an attribute that auto-grants the cluster-creating ide
 
 Two things use this here:
 - **EBS CSI driver** (`aws_iam_role.ebs_csi`, trusting `system:serviceaccount:kube-system:ebs-csi-controller-sa`) — needed because EKS ships no default StorageClass or volume provisioner at all, unlike kind's local-path or k3s's built-in one. Without this add-on, the chart's `mysql` StatefulSet's PVC stays `Pending` forever.
-- **AWS Load Balancer Controller** (`aws_iam_role.alb_controller`, trusting `system:serviceaccount:kube-system:aws-load-balancer-controller`) — its policy is vendored from the controller's own `v3.6.0` release JSON (`iam/alb-controller-policy.json`) rather than fetched at apply time, so a plan/apply doesn't depend on GitHub being reachable; re-fetch and diff before bumping the controller version.
+- **AWS Load Balancer Controller** (`aws_iam_role.alb_controller`, trusting `system:serviceaccount:kube-system:aws-load-balancer-controller`) — its policy is vendored from the controller's own `v3.6.0` release JSON (`iam/alb-controller-policy.json`) rather than fetched at apply time, so a plan/apply doesn't depend on GitHub being reachable. `run.sh` pins the controller's Helm chart to `3.6.0` (the chart that ships v3.6.0) so the running controller matches that policy; to upgrade, bump the chart `--version` and re-fetch and diff the policy JSON together.
 
 ## IAM identity requirements
 
@@ -49,7 +49,9 @@ Unlike `terraform/dev/variables.tf`'s equivalent (narrow that one to your own IP
 
 The network layer isn't the real access boundary here — IAM and Kubernetes RBAC are. Reaching the EKS API server at all doesn't grant any permissions; `main.tf`'s "GitHub Actions CI/CD identity" section's trust policy only lets a `deploy-staging.yml` run targeting the `staging` GitHub Environment assume the deploy role (its `:sub` condition is `repo:<repo>:environment:staging`, not a branch-ref condition), and the `aws_eks_access_entry`/`aws_eks_access_policy_association` pair only grants that role `AmazonEKSEditPolicy` scoped to the `csat` namespace specifically — not cluster-admin, and nothing a request from an arbitrary IP can bypass.
 
-## Known gaps, as of this doc's writing
+## Known gaps
 
 - **No remote Terraform state backend** — flagged directly in `providers.tf`. Unlike `dev` (destroyed every session, so losing local state is low-stakes), this tier is meant to stay up, which makes local-only state a real risk once more than one person/machine touches it.
 - **No Route53/real DNS** — the ALB is only reachable via its raw AWS-generated hostname plus a manual `Host:` header (see `docs/staging/kubernetes.md`).
+- **No HTTPS** — the ALB listens on HTTP `:80` only, with no ACM certificate. Adding one needs real DNS first.
+- **NetworkPolicies not enforced** — they render and apply, but `aws-node` runs as EKS's self-managed default, without the managed `vpc-cni` add-on's `enableNetworkPolicy` (see `docs/staging/kubernetes.md`).

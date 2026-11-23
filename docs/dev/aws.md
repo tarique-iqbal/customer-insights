@@ -1,6 +1,6 @@
 # AWS Resources (Dev Tier)
 
-The dev tier is two real EC2 instances running self-managed k3s, provisioned by `terraform/dev/`. It's deliberately ephemeral — deploy, test, destroy within a single session — distinct from the local kind cluster (no AWS at all) and the future self-hosted-EKS staging tier (managed control plane). Every resource below exists either because the app needs it or because a real failure on this exact setup forced it; both kinds are called out.
+The dev tier is two real EC2 instances running self-managed k3s, provisioned by `terraform/dev/`. It's deliberately ephemeral — deploy, test, destroy within a single session — distinct from the local kind cluster (no AWS at all) and the EKS staging tier (managed control plane, `terraform/staging`). Every resource below exists either because the app needs it or because a real failure on this exact setup forced it; both kinds are called out.
 
 ## Region and AMI
 
@@ -40,7 +40,7 @@ The pod-CIDR rule is the direct consequence of a real incident: flannel was swit
 
 ## Instances
 
-- **Type**: `t3.medium`, not the Free-Tier-eligible `t2.micro` it started on (`variables.tf:7-11`). **Behavioral insight**: `t2.micro`'s ~1GiB RAM OOMKilled MySQL mid-InnoDB-init (exit 137) — 8.0's real startup footprint needs more than that regardless of how the Pod's own memory limit is tuned (see `kubernetes/chart/values-dev.yaml`'s `mysql.resources` comment). `t3.medium` has the headroom for this, at the cost of no longer being Free-Tier-eligible — it bills by the hour, which is why `run.sh` defaults to leaving the environment up only until you explicitly ask it to `--destroy`, rather than nagging you every run.
+- **Type**: `t3.medium`, not the Free-Tier-eligible `t2.micro` it started on (`variables.tf:7-11`). **Behavioral insight**: `t2.micro`'s ~1GiB RAM OOMKilled MySQL mid-InnoDB-init (exit 137) — 8.0's real startup footprint needs more than that regardless of how the Pod's own memory limit is tuned (see `kubernetes/chart/values-dev.yaml`'s `mysql.resources` comment). `t3.medium` has the headroom for this, at the cost of no longer being Free-Tier-eligible — it bills by the hour. `run.sh` still leaves the environment up on exit by default, so a failed run keeps its evidence for debugging (`docs/dev/terraform.md`), which makes destroying it your job: pass `--destroy`, or run `terraform destroy` when you're done.
 - **Storage**: `gp3`, 8GiB, encrypted (`main.tf:286-290`, `312-316`) — encryption costs nothing extra on gp3 and there's no reason not to default it on.
 - **IAM**: neither instance has an instance profile at all (`main.tf:262-267`). Originally one existed for the SSM-based join-token handoff; once that was dropped (see Keys below), nothing on either instance calls an AWS API, so there's nothing left for a role to grant. This also sidesteps every IAM permission gap hit while that role existed (`TagInstanceProfile`, `UntagRole`, `RemoveRoleFromInstanceProfile`) by removing the resources that needed them entirely, rather than chasing more permissions.
 
