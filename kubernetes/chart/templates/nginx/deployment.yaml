@@ -32,6 +32,8 @@ spec:
       labels:
         app: nginx
     spec:
+      # No container here calls the Kubernetes API, so mount no token.
+      automountServiceAccountToken: false
       initContainers:
         - name: wait-for-php-dns
           image: busybox:1.36

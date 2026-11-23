@@ -27,6 +27,8 @@ spec:
         # hashing the ConfigMap rolls the Pods whenever a setting changes.
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      # No container here calls the Kubernetes API, so mount no token.
+      automountServiceAccountToken: false
       containers:
         - name: php
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"

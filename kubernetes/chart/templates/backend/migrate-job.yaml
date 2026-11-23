@@ -21,6 +21,8 @@ spec:
       labels:
         app: migrate
     spec:
+      # No container here calls the Kubernetes API, so mount no token.
+      automountServiceAccountToken: false
       restartPolicy: Never
       initContainers:
         # Helm doesn't gate a hook on the main resources being Ready, so wait

@@ -23,6 +23,8 @@ spec:
       labels:
         app: web-user
     spec:
+      # No container here calls the Kubernetes API, so mount no token.
+      automountServiceAccountToken: false
       containers:
         - name: web-user
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"

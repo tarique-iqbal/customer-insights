@@ -19,6 +19,8 @@ spec:
       labels:
         app: mysql
     spec:
+      # No container here calls the Kubernetes API, so mount no token.
+      automountServiceAccountToken: false
       containers:
         - name: mysql
           image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
