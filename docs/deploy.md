@@ -14,9 +14,14 @@ All three component images (`backend`, `nginx`, `frontend`) are pinned this way 
 git push
 ```
 
-Pushing to `main` triggers whichever of `ci-api.yml`/`ci-client.yml` matches the changed paths. Each runs its own gate — `quality` → `test(s)` → `build` → `publish` — and `publish` only runs if every job before it passed and the branch is `main`. Wait for that run to go green (`gh run list`/`gh run watch`) before moving on — the SHA you're about to pin doesn't have an image behind it until `publish` finishes.
+Pushing to `main` triggers whichever of `ci-api.yml`/`ci-client.yml` matches the changed paths: `api-service/`, `docker/php/` or `docker/nginx/` for the API, `web-user/` or `docker/web-user/` for the client, plus each workflow's own file and setup action. Both exclude `**.md`, and neither watches `kubernetes/` or `terraform/`, so a docs-, chart- or Terraform-only push publishes no image and gives you no new SHA to pin. Each workflow runs its own gate:
 
-The commit SHA you just pushed (`git rev-parse HEAD`) is the tag both `ghcr.io/.../csat-php` (or `csat-web-user`) now carry.
+- `ci-api.yml`: `quality` → `unit-tests` → `integration-tests` → `functional-tests` → `publish` (the images are built inside `publish`)
+- `ci-client.yml`: `quality` → `test` → `build` → `publish`
+
+`publish` only runs if every job before it passed and the branch is `main`. Wait for that run to go green (`gh run list`/`gh run watch`) before moving on — the SHA you're about to pin doesn't have an image behind it until `publish` finishes.
+
+The commit SHA you just pushed (`git rev-parse HEAD`) is the tag the newly published images now carry: `ghcr.io/.../csat-php` and `csat-nginx` together from `ci-api.yml`, or `csat-web-user` from `ci-client.yml`.
 
 ## Step 2: bump the pin in all three values files
 
@@ -36,7 +41,7 @@ The cluster is already running, so this is just a chart upgrade:
 helm upgrade csat kubernetes/chart -n csat -f kubernetes/chart/values-local.yaml --wait --timeout 3m
 ```
 
-No `--set` override needed here — that flag is only for testing a locally-built `:local` image against a pinned component without touching the file (`docs/local/kind.md`'s "Deploying a change" section). Since the file itself now carries the new SHA, a plain `-f values-local.yaml` upgrade is sufficient. **This also means a `--set` override from an earlier one-off test never lingers**: it only ever applied to the single `helm upgrade` call it was passed on, not to the file, so the very next upgrade that omits it reverts the release to whatever the values file says — Helm's three-way merge diffs against its own previously-stored release manifest, which already differs from the `--set` value you're leaving out, and replaces it correctly.
+No `--set` override needed here — that flag is only for testing a locally-built `:local` image against a pinned component without touching the file (`docs/local/kind.md`'s "Deploying a change" section). Since the file itself now carries the new SHA, a plain `-f values-local.yaml` upgrade is sufficient. **This also means a `--set` override from an earlier one-off test never lingers**: `helm upgrade` without `--reuse-values` builds the release's values from scratch on every call, from the chart's defaults plus only the `-f`/`--set` flags passed to that call. An override you leave out is simply absent, so the very next upgrade that omits it reverts the release to whatever the values file says.
 
 (`kubectl diff` on a Service whose `port`/`targetPort` number itself just changed can show a spurious *second*, unnamed port and fail with `spec.ports[0].name: Required value` — that's `kubectl diff` falling back to a plain two-way merge because Helm-managed resources carry no `kubectl.kubernetes.io/last-applied-configuration` annotation for it to three-way-merge against. `helm upgrade --dry-run` renders the real, single-port result; trust that over `kubectl diff` for this specific shape of change.)
 
@@ -44,7 +49,7 @@ Then verify per `docs/local/kind.md`'s Verifying section (Pod readiness, the thr
 
 ## Step 3.b: redeploy — dev (EC2)
 
-The dev tier has no standing cluster by design (`docs/dev/terraform.md`) — a pin bump here doesn't deploy anything by itself. It takes effect the next time `./run.sh` runs end to end: `run.sh:133-134` renders `values-dev.yaml` into a temp file (substituting the real worker IP for every `REPLACE_ME_WORKER_IP`) immediately before `helm upgrade --install`, so whatever SHA is sitting in the committed `values-dev.yaml` at that moment is what gets deployed. If the dev environment happens to already be up when you bump the pin, re-run just the Helm step yourself against that same rendered file rather than re-running all of `run.sh`; if it's destroyed (the normal state between sessions), the next `./run.sh` picks up the new pin automatically — nothing extra to do.
+The dev tier has no standing cluster by design (`docs/dev/terraform.md`) — a pin bump here doesn't deploy anything by itself. It takes effect the next time `./run.sh` runs end to end: `terraform/dev/run.sh` renders `values-dev.yaml` with `sed` into a separate file (substituting the real worker IP for every `REPLACE_ME_WORKER_IP`) immediately before `helm upgrade --install`, so whatever SHA is sitting in the committed `values-dev.yaml` at that moment is what gets deployed. If the dev environment happens to already be up when you bump the pin, re-run just the Helm step yourself against that same rendered file rather than re-running all of `run.sh`; if it's destroyed (the normal state between sessions), the next `./run.sh` picks up the new pin automatically — nothing extra to do.
 
 ## Step 3.c: redeploy — staging (EKS)
 
@@ -56,7 +61,7 @@ helm upgrade csat kubernetes/chart --namespace csat -f kubernetes/chart/values-s
 
 Then verify with `terraform/staging/verify.sh <alb-hostname>` (find the hostname with `kubectl get ingress csat -n csat`): it curls the ALB's real hostname with an explicit `Host:` header, not the placeholder hostnames themselves — those were never meant to resolve. Watch for the ALB target-group warmup race documented there if this redeploy happens to create a brand-new ALB rather than reusing an existing one.
 
-**Automated alternative for steps 2-3.c (staging only)**: `.github/workflows/bump-pin.yml` and `.github/workflows/deploy-staging.yml` do this same pin-bump-then-upgrade from GitHub Actions instead of a local shell, authenticating to AWS via OIDC (`terraform/staging/main.tf`'s "GitHub Actions CI/CD identity" section — no stored AWS keys). One-time setup before `deploy-staging.yml` can run: create a `staging` GitHub Environment with a required reviewer, and set that environment's `STAGING_GITHUB_ACTIONS_ROLE_ARN` and `AWS_REGION` variables to `terraform output github_actions_deploy_role_arn` / `terraform output aws_region`. Dev and local still only have the manual path above; dev's ephemeral, no-standing-cluster lifecycle makes automating it a materially bigger change (CI would have to own the EC2/Terraform lifecycle, not just the Helm step), and local by definition runs on your own machine.
+**Automated alternative for steps 2-3.c (staging only)**: `.github/workflows/bump-pin.yml` and `.github/workflows/deploy-staging.yml` do this same pin-bump-then-upgrade from GitHub Actions instead of a local shell, authenticating to AWS via OIDC (`terraform/staging/main.tf`'s "GitHub Actions CI/CD identity" section — no stored AWS keys). `bump-pin.yml` takes a component (`backend`, `nginx`, `frontend` or `all`) and an optional SHA, checks GHCR's manifest API that an image actually exists for that SHA and fails before writing anything if not, then commits the three values files and pushes straight to `main` as `github-actions[bot]`. `deploy-staging.yml` runs `helm upgrade` and then `terraform/staging/verify.sh`. One-time setup before `deploy-staging.yml` can run: create a `staging` GitHub Environment with a required reviewer, and set that environment's `STAGING_GITHUB_ACTIONS_ROLE_ARN` and `AWS_REGION` variables to `terraform output github_actions_deploy_role_arn` / `terraform output aws_region`. Dev and local still only have the manual path above; dev's ephemeral, no-standing-cluster lifecycle makes automating it a materially bigger change (CI would have to own the EC2/Terraform lifecycle, not just the Helm step), and local by definition runs on your own machine.
 
 ## Summary
 
@@ -65,4 +70,4 @@ Then verify with `terraform/staging/verify.sh <alb-hostname>` (find the hostname
 | 1. Push, CI publishes | same for all three — one push, every tier reads from the same `ghcr.io` images | | |
 | 2. Bump pin | same commit, all three values files | | |
 | 3. Apply | `helm upgrade` against the already-running cluster | next `./run.sh`, or a manual `helm upgrade` if the environment happens to be up | `helm upgrade` against the already-running cluster, same shape as kind |
-| 4. Verify | `docs/local/kind.md` Verifying section | `docs/dev/kubernetes.md`'s final section | `docs/staging/debugging.md`'s verification approach (`Host:` header against the ALB) |
+| 4. Verify | `docs/local/kind.md` Verifying section | `docs/dev/kubernetes.md`'s final section | `terraform/staging/verify.sh <alb-hostname>` (`Host:` header against the ALB) |
