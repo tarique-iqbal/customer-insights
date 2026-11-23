@@ -119,7 +119,10 @@ EOF
 echo "==> installing the AWS Load Balancer Controller (IRSA role from terraform output)"
 helm repo add eks https://aws.github.io/eks-charts >/dev/null 2>&1 || true
 helm repo update eks >/dev/null
+# Pinned to the chart that ships controller v3.6.0, the release whose IAM
+# policy main.tf vendors (iam/alb-controller-policy.json). Bump both together.
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  --version 3.6.0 \
   --namespace kube-system \
   --set clusterName="$CLUSTER_NAME" \
   --set region="$AWS_REGION" \
