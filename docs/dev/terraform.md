@@ -18,7 +18,7 @@
 
 ## State
 
-No remote backend, by design (`providers.tf:15-21`): the long-lived production Terraform (this repo's other, not-yet-built root module) needs shared, locked state because it's always-on. This one is created and destroyed within a single test session, so there's nothing to share across machines or protect with a lock — state lives as a local `.tfstate` file in this directory only.
+No remote backend, by design (`providers.tf:15-20`): long-lived infrastructure needs shared, locked state because it's always-on — `terraform/staging` is long-lived and its own `providers.tf` flags its local-only state as a risk to fix, and a future production module would need it from the start. This one is created and destroyed within a single test session, so there's nothing to share across machines or protect with a lock — state lives as a local `.tfstate` file in this directory only.
 
 **Gitignore policy** for this directory: `.terraform/`, `*.tfstate*`, `*.tfvars` (but not `*.tfvars.example`), `crash.log`, and `kubeconfig*.yaml` are all ignored at the repo root. `terraform.tfvars` is excluded because it typically contains your personal `allowed_admin_cidr` and a path into your home directory (`ssh_public_key_path`) — neither belongs in version control, and the `.example` file exists precisely so the real structure is still documented and tracked.
 
@@ -35,7 +35,7 @@ Every variable in `variables.tf` documents its own "why" in its `description` ra
 
 `main.tf:294-297` and `320-324` pass version/IP/key values into `user-data/*.sh.tpl` via `templatefile()`, rather than hardcoding them into the scripts — this is what lets the same scripts serve any run of `terraform apply` without editing shell code by hand.
 
-**If you edit a `user-data/*.sh.tpl` file yourself**: IMDSv2 is enforced on this account. A plain, unauthenticated `curl http://169.254.169.254/...` doesn't error — it silently returns nothing, which once turned `--tls-san "$PUBLIC_IP"` into a no-op with no indication anything was wrong, because the cert still got issued (just without covering the public IP). Both follow this pattern for any metadata read, rather than assuming a bare `curl` is safe:
+**If you edit a `user-data/*.sh.tpl` file yourself**: IMDSv2 is enforced on this account. A plain, unauthenticated `curl http://169.254.169.254/...` doesn't error — it silently returns nothing, which once turned `--tls-san "$PUBLIC_IP"` into a no-op with no indication anything was wrong, because the cert still got issued (just without covering the public IP). `control-plane.sh.tpl` is the only script that reads metadata today (the worker gets everything it needs from `templatefile()` and the control plane), and any script that does should follow this pattern rather than assume a bare `curl` is safe:
 
 1. Fetch a token first (`PUT .../api/token`).
 2. Pass that token as a header on the metadata `GET`.

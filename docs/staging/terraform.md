@@ -12,6 +12,7 @@
 | `providers.tf` | provider versions, backend decision (see State below) |
 | `terraform.tfvars.example` | tracked template — copy to `terraform.tfvars` and edit |
 | `terraform.tfvars` | your actual values; gitignored, never committed |
+| `.terraform.lock.hcl` | provider version lock, tracked so `terraform init` is reproducible |
 | `iam/alb-controller-policy.json` | vendored AWS Load Balancer Controller IAM policy — see `docs/staging/aws.md`'s IRSA section |
 | `run.sh` | the actual entry point — see Orchestration below |
 | `verify.sh` | curl checks through the ALB, taking its hostname as the only argument; shared by `run.sh` and `.github/workflows/deploy-staging.yml` |
