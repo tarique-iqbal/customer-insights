@@ -1,9 +1,8 @@
 # Managed-control-plane alternative to terraform/dev's self-hosted k3s —
 # EKS owns etcd/control-plane HA/version upgrades/cert rotation instead of
-# us. Nodes sit in private subnets behind a NAT Gateway (Option B, see
-# notes/aws-qna.md's node-placement Q&A), deliberately not a copy of dev's
-# "no NAT, public IPs" tradeoff: the reason for this tier to exist
-# alongside dev (which is staying) is to exercise the production-shaped
+# us. Nodes sit in private subnets behind a NAT Gateway, deliberately not a
+# copy of dev's "no NAT, public IPs" tradeoff: the reason for this tier to
+# exist alongside dev is to exercise the production-shaped
 # pieces dev structurally can't — private nodes, a real load balancer in
 # front of the cluster, and IRSA for pod-level AWS access.
 
@@ -90,8 +89,8 @@ resource "aws_route_table_association" "public" {
 }
 
 # Single NAT Gateway, not one per AZ — this is staging, not a
-# multi-AZ-HA-egress production build. One NAT is the whole point of
-# Option B's cost tradeoff versus dev's zero-NAT design; a node in the AZ
+# multi-AZ-HA-egress production build. One NAT keeps this tier's cost
+# down compared with one per AZ (dev has none at all); a node in the AZ
 # without the NAT still reaches it fine (cross-AZ traffic inside one VPC,
 # not cross-region).
 resource "aws_eip" "nat" {
@@ -270,7 +269,7 @@ resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.name}-default"
   node_role_arn   = aws_iam_role.node.arn
-  # Private subnets only — Option B's defining choice: nodes have no
+  # Private subnets only — this tier's defining choice: nodes have no
   # public IP, the ALB (public subnets, below) is the one internet-facing
   # thing in front of the cluster.
   subnet_ids     = aws_subnet.private[*].id

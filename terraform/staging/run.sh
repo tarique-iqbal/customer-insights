@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Apply -> wait for the EKS cluster and its node group -> install the AWS
 # Load Balancer Controller -> deploy the chart -> curl-verify, in one run.
-# Leaves staging up on exit by default — unlike dev this tier isn't meant
-# to be destroyed after every session (see notes/aws-qna.md's "isn't as
-# disposable" note), so destroying it is on you to request explicitly, via
-# --destroy.
+# Leaves staging up on exit by default: unlike dev, this tier is meant to
+# stay running between sessions (EKS's control plane bills the same idle or
+# not), so destroying it is on you to request explicitly, via --destroy.
 #
 # Usage: ./run.sh [--destroy] [--help]
 set -euo pipefail
@@ -43,7 +42,7 @@ for cmd in terraform aws kubectl helm curl; do
 done
 
 if [ ! -f terraform.tfvars ]; then
-  echo "terraform.tfvars not found, copy terraform.tfvars.example and edit allowed_admin_cidr first." >&2
+  echo "terraform.tfvars not found, copy terraform.tfvars.example first." >&2
   exit 1
 fi
 

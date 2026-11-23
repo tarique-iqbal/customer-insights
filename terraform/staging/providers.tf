@@ -12,10 +12,9 @@ terraform {
     }
   }
 
-  # No remote backend yet, same as terraform/dev for now — but unlike dev,
-  # this tier isn't meant to be destroyed after every test session (see
-  # notes/aws-qna.md's "isn't as disposable" note), so local state here is
-  # a bigger risk than it is for dev: there's more to lose, and nothing
+  # No remote backend yet, same as terraform/dev — but unlike dev, this tier
+  # stays running between sessions, so local state here is a bigger risk
+  # than it is for dev: there's more to lose, and nothing
   # stops two people (or two machines) applying at once. Add an S3 (+
   # DynamoDB, or S3 native locking on TF >=1.10) backend before this is
   # used by more than one person/machine, or left running long enough that
