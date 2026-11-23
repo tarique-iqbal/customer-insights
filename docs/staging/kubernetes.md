@@ -34,7 +34,7 @@ The DNS-wait `initContainer` on nginx, the zero-downtime `preStop`/`RollingUpdat
 
 ## NetworkPolicy: declared, not enforced, on this tier either
 
-Same caveat `docs/helm.md`'s NetworkPolicy section already covers in full: the chart's per-workload `NetworkPolicy` objects render and apply here too, but the Amazon VPC CNI doesn't enforce them by default — that needs `ENABLE_NETWORK_POLICY=true` set on the `aws-node` DaemonSet (or Calico installed instead), neither of which `terraform/staging` does yet. Of the three tiers, only `terraform/dev`'s k3s actually enforces these right now.
+Same caveat `docs/helm.md`'s NetworkPolicy section already covers in full: the chart's per-workload `NetworkPolicy` objects render and apply here too, but the Amazon VPC CNI doesn't enforce them by default. Enforcement needs the managed `vpc-cni` EKS add-on configured with `enableNetworkPolicy: "true"`, which also runs the network policy agent that actually applies the rules (or Calico installed instead). `terraform/staging` does neither yet: `aws-node` runs as EKS's self-managed default. Of the three tiers, only `terraform/dev`'s k3s actually enforces these right now.
 
 ## Verify for real, including one EKS-specific race
 
