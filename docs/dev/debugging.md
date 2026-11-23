@@ -101,7 +101,11 @@ kubectl exec netdebug -n csat -- nc -zv -w3 mysql 3306   # expect: fails, no mat
 kubectl run netdebug-php --image=curlimages/curl --restart=Never -n csat \
   --overrides='{"metadata":{"labels":{"app":"php"}}}' -- sleep 3600
 kubectl exec netdebug-php -n csat -- nc -zv -w3 mysql 3306   # expect: succeeds
+
+kubectl delete pod netdebug netdebug-php -n csat              # clean up straight after
 ```
+
+**Side effect of the `app: php` label**: it also matches the real `php` Service's selector, and a debug Pod with no readiness probe is Ready immediately, so it joins that Service's endpoints. While it exists, some of nginx's FastCGI requests land on a curl container that isn't listening on 9000, and those API calls fail with a 502. Run this on a throwaway environment (or accept a few failed requests), and delete the Pods as soon as you have the result. The php ReplicaSet won't adopt it, since the Pod lacks the `pod-template-hash` label, so the real php Pod is never touched.
 
 If both behave as expected, the policy is working as designed — the real bug (if there is one) is almost always a missing label on whatever Pod needed to be let in (the `migrate` Job needing an explicit `app: migrate` label is exactly this kind of gap, found and fixed when these policies were first added), not the policy itself.
 
@@ -113,7 +117,7 @@ Two more incidents live here — not platform bugs, but the chart's own behavior
 
 **Concept you need**: most DNS clients resolve a hostname fresh on every connection. nginx's `fastcgi_pass php:9000;` does **not** — nginx resolves that hostname **once, synchronously, at config-load time**, and never retries on its own afterward. If the DNS answer simply isn't ready yet at that exact instant (not actually broken — just not propagated yet), nginx crash-loops permanently, because there's no later retry to save it.
 
-**Fix in this chart**: a `busybox` initContainer (`kubernetes/chart/templates/nginx/deployment.yaml:35-41`) polls `nslookup php.default.svc.cluster.local.` in a loop until it succeeds, before the real nginx container ever starts — turning a one-shot race into a retry loop.
+**Fix in this chart**: a `busybox` initContainer (`kubernetes/chart/templates/nginx/deployment.yaml:37-43`) polls `nslookup php.<release-namespace>.svc.cluster.local.` (`php.csat.svc.cluster.local.`) in a loop until it succeeds, before the real nginx container ever starts — turning a one-shot race into a retry loop.
 
 **The trap when reading this symptom**: `kubectl logs <pod> -c wait-for-php-dns` showing a steady "waiting for php to resolve" means the initContainer is working exactly as designed — it is **not** evidence of a DNS outage. The far more common real cause, especially if `nginx` landed on a different node than `php`, is the Layer-3 network path (see the `host-gw`/CIDR cases above), not DNS or nginx at all. Once the actual network issue is fixed, this initContainer recovers **on its own** — no restart, no redeploy — because it's still polling the whole time.
 

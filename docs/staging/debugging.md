@@ -92,7 +92,7 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controll
 
 **What happens**: right after a brand-new Ingress gets a real ALB hostname, the first endpoint checked can fail its retries for the first 30-60 seconds while endpoints checked later in the same verification sequence pass immediately — nothing is actually broken; whichever endpoint happens to be checked first simply lands inside the ALB's own target-registration warmup window, and the ones checked afterward don't.
 
-**How to tell this apart from a real failure**: if a manual re-check (`curl` with the `Host:` header, no redeploy, no fix) succeeds shortly after a verification failure with nothing else having changed, suspect this race before anything else — especially right after a *brand-new* ALB/target-group is created (a redeploy reusing an existing, already-warm target group is much less likely to show it).
+**How to tell this apart from a real failure**: if a manual re-check (`terraform/staging/verify.sh <alb-hostname>`, no redeploy, no fix) succeeds shortly after a verification failure with nothing else having changed, suspect this race before anything else — especially right after a *brand-new* ALB/target-group is created (a redeploy reusing an existing, already-warm target group is much less likely to show it).
 
 ## Tearing this down: two failure modes that only show up on `terraform destroy`
 
