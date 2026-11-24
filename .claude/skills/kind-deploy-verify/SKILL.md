@@ -43,7 +43,7 @@ Before assuming your rebuilt `:local` image will actually run, check `kubernetes
 grep -A2 "^backend:\|^frontend:\|^nginx:" kubernetes/chart/values-local.yaml
 ```
 
-As of this writing, `backend.image` and `frontend.image` are pinned to specific `ghcr.io/.../csat-{php,web-user}:<sha>` tags (from switching the cluster to the real CI-published images) — `nginx.image` isn't overridden there, so it still defaults to `values.yaml`'s `csat-nginx:local`. **Check the current file rather than trusting this**, since pins get added or removed over time.
+`backend.image`, `nginx.image` and `frontend.image` are all pinned to specific `ghcr.io/.../csat-{php,nginx,web-user}:<sha>` tags (the CI-published images). **Check the current file rather than trusting this**, since pins get added or removed over time.
 
 If the component you rebuilt is pinned: don't edit `values-local.yaml` to test one change (that's a separate decision about switching the cluster back to local dev images generally, not implied by wanting to verify this one edit). Instead, override it just for this deploy:
 
@@ -53,7 +53,7 @@ helm upgrade csat kubernetes/chart -n csat -f kubernetes/chart/values-local.yaml
   --wait --timeout 3m
 ```
 
-(substitute `backend`/`frontend` as appropriate — `nginx` needs no override since it isn't pinned).
+(substitute `nginx` with `csat-nginx`, or `frontend` with `csat-web-user`, as appropriate). For `frontend`, an untargeted build is the Vite dev image on port 5173 while `values-local.yaml` sets `containerPort: 80` for the prod image, so also pass `--set frontend.containerPort=5173` (or build with `--target prod`), or the Pod never becomes Ready.
 
 ## Step 3: lint, preview, then apply
 
