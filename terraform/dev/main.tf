@@ -252,12 +252,11 @@ resource "tls_private_key" "node_to_node" {
   algorithm = "ED25519"
 }
 
-# A cluster placement group was tried here while chasing intermittent
-# cross-node pod connectivity and removed again — AWS rejects it outright
-# for t3.medium ("Cluster placement groups are not supported by the
-# 't3.medium' instance type"). Not revisited since the other two fixes
-# from that same investigation (host-gw backend, below; the UDP 8472
-# Security Group rules) don't depend on it.
+# No cluster placement group: AWS rejects one for t3.medium ("Cluster
+# placement groups are not supported by the 't3.medium' instance type").
+# Cross-node pod connectivity doesn't need it. It depends on the host-gw
+# backend (below) plus the pod-CIDR (10.42.0.0/16) Security Group rules
+# above; the UDP 8472 rules only matter if the backend reverts to VXLAN.
 
 # Neither instance has an IAM role/instance profile at all anymore — once
 # the join-token handoff above stopped using SSM, nothing left on either
